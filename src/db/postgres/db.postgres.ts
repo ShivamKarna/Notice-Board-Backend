@@ -1,11 +1,13 @@
 import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
+import { pgDB_URL } from "../../utils/env";
+import * as schema from "./schemas/index";
 
-// You can specify any property from the postgres-js connection options
-const db = drizzle({
-  connection: {
-    url: process.env.POSTGRES_DATABASE_URL,
-    ssl: true,
-  },
-});
+const connectionString = pgDB_URL;
 
-const result = await db.execute("select 1");
+// For query purposes
+const queryClient = postgres(connectionString);
+export const db = drizzle(queryClient, { schema });
+
+// Export types
+export type DbClient = typeof db;

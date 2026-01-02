@@ -10,13 +10,17 @@ export const permissions = pgTable("permissions", {
   action: text("action").notNull().unique(), // "post:create", "post:approve"
 });
 
-export const rolePermissions = pgTable("role_permissions", {
-  roleId: uuid("role_id")
-    .references(() => roles.id, { onDelete: "cascade" })
-    .notNull()
-    .primaryKey(),
-  permissionId: uuid("permission_id")
-    .references(() => permissions.id, { onDelete: "cascade" })
-    .notNull()
-    .primaryKey(),
-});
+export const rolePermissions = pgTable(
+  "role_permissions",
+  {
+    roleId: uuid("role_id")
+      .references(() => roles.id, { onDelete: "cascade" })
+      .notNull(),
+    permissionId: uuid("permission_id")
+      .references(() => permissions.id, { onDelete: "cascade" })
+      .notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.roleId, table.permissionId] }),
+  })
+);
