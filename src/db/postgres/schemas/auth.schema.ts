@@ -19,3 +19,18 @@ export const userSessions = pgTable('user_sessions',{
   expiresAt: timestamp('expires_at').notNull(),
   lastActivity: timestamp('last_activity').defaultNow().notNull(),
 })
+
+
+
+export const refreshTokens = pgTable('refresh_tokens',{
+  id : uuid('id').primaryKey().defaultRandom(),
+  token: text('token').notNull(),
+  userId : uuid('user_id').notNull().references(()=>usersTable.id, {onDelete:"cascade"}),
+  expiresAt : timestamp('expires_at').notNull(),
+  createdAt : timestamp('created_at').notNull().defaultNow(),
+  replacedBy : uuid('replaced_by'), // for token rotation
+  revokedAt : timestamp('revoked_at'),
+  revokedReason : text('revoked_reason'),
+  isRevoked : boolean('is_revoked').notNull().default(false)
+
+})

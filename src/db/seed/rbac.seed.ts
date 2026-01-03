@@ -35,7 +35,7 @@ export async function seedRBAC() {
   AppAssert(
     adminRole,
     STATUS_CODE.BAD_REQUEST,
-    "Owner role is not created in DB"
+    "Admin role is not created in DB"
   );
   const [memberRole] = await db
     .insert(roles)
@@ -48,7 +48,7 @@ export async function seedRBAC() {
   AppAssert(
     memberRole,
     STATUS_CODE.BAD_REQUEST,
-    "Owner role is not created in DB"
+    "Member role is not created in DB"
   );
   console.log("Roles created successFully !!");
 
@@ -66,6 +66,8 @@ export async function seedRBAC() {
     { action: "post:approve" },
     { action: "post:reject" },
     { action: "notification:manage" },
+    { action: "join_request:approve" }, // approve join requests
+    { action: "join_request:reject" }, // reject join requests
   ];
   const createdPermissions = await db
     .insert(permissions)
@@ -90,6 +92,8 @@ export async function seedRBAC() {
     "post:approve",
     "post:reject",
     "notification:manage",
+    "join_request:approve",
+    "join_request:reject",
   ];
 
   const adminPermissions = createdPermissions
