@@ -3,12 +3,11 @@ import { db } from "../../db/postgres/db.postgres";
 import { and, eq } from "drizzle-orm";
 
 
-
 async function revokeToken(token : string, reason: string = 'Manual revocation') {
     await db
       .update(refreshTokens)
       .set({
-        isRevoked: true,
+        isRevoked: true,  // soft deleting 
         revokedAt: new Date(),
         revokedReason: reason,
       })

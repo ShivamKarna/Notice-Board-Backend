@@ -23,6 +23,8 @@ export const JWT_REFRESH_SECRET_EXPIRES_IN = getEnv(
   "JWT_REFRESH_SECRET_EXPIRES_IN"
 );
 
+export const NODE_ENV = getEnv("NODE_ENV");
 export const SESSION_SECRET = getEnv("SESSION_SECRET");
-
+export const PORT = getEnv("PORT");
+export const CORS_ORIGIN = getEnv("CORS_ORIGIN");
 export const CLIENT_URL = getEnv("CLIENT_URL");
