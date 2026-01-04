@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
-import { authService} from "../services/auth.service";
+import { authService } from "../services/auth.service";
 import { STATUS_CODE } from "../types/httpStatus";
 import { ApiResponse } from "../utils/ApiResponse";
 import { AppAssert } from "../utils/AppAssert";
@@ -213,20 +213,29 @@ export class AuthController {
   }
   async revokeAllSessions(req: Request, res: Response, next: NextFunction) {
     try {
-      if(!req.user){
-        throw new ApiError(STATUS_CODE.UNAUTHORIZED,"Not authenticated");
+      if (!req.user) {
+        throw new ApiError(STATUS_CODE.UNAUTHORIZED, "Not authenticated");
       }
 
-      await revokeAllUserTokens(req.user.userId, "User logged out from all devices");
+      await revokeAllUserTokens(
+        req.user.userId,
+        "User logged out from all devices"
+      );
 
+      res.clearCookie("session_token");
+      res.clearCookie("refresh_token");
 
-      res.clearCookie('session_token');
-      res.clearCookie('refresh_token');
-
-      return res.status(STATUS_CODE.SUCCESS).json(new ApiResponse(STATUS_CODE.SUCCESS,null,"User logged out from all devices"));
+      return res
+        .status(STATUS_CODE.SUCCESS)
+        .json(
+          new ApiResponse(
+            STATUS_CODE.SUCCESS,
+            null,
+            "User logged out from all devices"
+          )
+        );
     } catch (error) {
       next(error);
-      
     }
   }
 }
