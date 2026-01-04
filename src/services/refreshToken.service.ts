@@ -1,12 +1,10 @@
 import crypto from "crypto";
 import { db } from "../db/postgres/db.postgres";
 import { refreshTokens } from "../db/postgres/schemas";
-import { eq } from "drizzle-orm";
+import { and, eq, lt } from "drizzle-orm";
 import { ApiError } from "../utils/ApiError";
 import { STATUS_CODE } from "../types/httpStatus";
-import ms from "ms";
 import { createRefreshToken } from "../utils/auth/jwt";
-import { JWT_REFRESH_SECRET_EXPIRES_IN } from "../utils/env";
 
 export class RefreshTokenService {
   async verifyAndGetToken(token: string) {
@@ -54,6 +52,26 @@ export class RefreshTokenService {
       .where(eq(refreshTokens.token, oldToken));
 
     return { token: newTokenString, tokenId };
+  }
+
+  async cleanupExpiredTokens() {
+    const result = await db
+      .delete(refreshTokens)
+      .where(lt(refreshTokens.expiresAt, new Date()))
+      .returning({ id: refreshTokens.id });
+
+    return result.length;
+  }
+  async getUserActiveTokens(userId: string) {
+    return await db
+      .select()
+      .from(refreshTokens)
+      .where(
+        and(
+          eq(refreshTokens.userId, userId),
+          eq(refreshTokens.isRevoked, false)
+        )
+      );
   }
 }
 

@@ -149,7 +149,7 @@ export class AuthService {
       .from(usersTable)
       .where(eq(usersTable.id, userId));
     return user || null;
-  }
-}
 
+}
+};
 export const authService = new AuthService();

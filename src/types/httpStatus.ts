@@ -1,5 +1,5 @@
 export const STATUS_CODE = {
-  OK: 200,
+  SUCCESS: 200,
   CREATED: 201,
   ACCEPTED: 202,
   NO_CONTENT: 204,
@@ -21,7 +21,7 @@ export const STATUS_CODE = {
 } as const;
 
 export type httpStatusCode =
-  | typeof STATUS_CODE.OK
+  | typeof STATUS_CODE.SUCCESS
   | typeof STATUS_CODE.CREATED
   | typeof STATUS_CODE.BAD_REQUEST
   | typeof STATUS_CODE.UNAUTHORIZED
