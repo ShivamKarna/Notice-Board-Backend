@@ -31,6 +31,6 @@ export const refreshTokens = pgTable('refresh_tokens',{
   replacedBy : uuid('replaced_by'), // for token rotation
   revokedAt : timestamp('revoked_at'),
   revokedReason : text('revoked_reason'),
-  isRevoked : boolean('is_revoked').notNull().default(false)
+  isRevoked : boolean('is_revoked').notNull().default(false) // for soft deletion
 
 })

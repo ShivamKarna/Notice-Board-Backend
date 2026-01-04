@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { db } from "../db/postgres/db.postgres";
-import { userSessions, usersTable } from "../db/postgres/schemas";
+import { usersTable } from "../db/postgres/schemas";
 import { ApiError } from "../utils/ApiError";
 import { STATUS_CODE } from "../types/httpStatus";
 import type { loginInput, RegisterInput } from "../utils/auth/validations";
