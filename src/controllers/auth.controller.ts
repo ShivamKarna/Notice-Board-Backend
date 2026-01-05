@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from "express";
+import { UAParser } from "ua-parser-js";
 import { authService } from "../services/auth.service";
 import { STATUS_CODE } from "../types/httpStatus";
 import { ApiResponse } from "../utils/ApiResponse";
@@ -17,7 +18,8 @@ export class AuthController {
   async registerUser(req: Request, res: Response, next: NextFunction) {
     try {
       // call service
-      const result = await authService.registerUser(req.body);
+      const userAgent = req.headers["user-agent"];
+      const result = await authService.registerUser({ ...req.body, userAgent });
 
       // set cookies
       res.cookie("session_token", result.sessionToken, {
@@ -36,7 +38,11 @@ export class AuthController {
       res
         .status(STATUS_CODE.CREATED)
         .json(
-          new ApiResponse(STATUS_CODE.CREATED, "User Registration Successful")
+          new ApiResponse(
+            STATUS_CODE.CREATED,
+            result,
+            "User registered successfully"
+          )
         );
     } catch (error) {
       next(error);
@@ -44,7 +50,8 @@ export class AuthController {
   }
   async loginUser(req: Request, res: Response, next: NextFunction) {
     try {
-      const result = await authService.loginUser(req.body);
+      const userAgent = req.headers["user-agent"];
+      const result = await authService.loginUser({ ...req.body, userAgent });
 
       res.cookie("session_token", result.sessionToken, {
         httpOnly: true,
@@ -62,7 +69,9 @@ export class AuthController {
 
       res
         .status(STATUS_CODE.SUCCESS)
-        .json(new ApiResponse(STATUS_CODE.SUCCESS, "User Login SUccessful"));
+        .json(
+          new ApiResponse(STATUS_CODE.SUCCESS, result, "User login successfull")
+        );
     } catch (error) {
       next(error);
     }
@@ -190,23 +199,43 @@ export class AuthController {
       if (!req.user) {
         throw new ApiError(STATUS_CODE.UNAUTHORIZED, "Not authenticated");
       }
+
+      const user = req.user;
       const sessions = await refreshTokenService.getUserActiveTokens(
-        req.user.userId
+        user.userId
       );
 
-      res.status(STATUS_CODE.SUCCESS).json(
-        new ApiResponse(
-          STATUS_CODE.SUCCESS,
-          {
-            sessions: sessions.map((s) => ({
-              id: s.id,
-              createdAt: s.createdAt,
-              expiresAt: s.expiresAt,
-            })),
+      const parsedSessions = sessions.map((s) => {
+        const parser = new UAParser(s.userAgent || "");
+        const device = parser.getResult();
+
+        return {
+          id: s.id,
+          device: {
+            browser: `${device.browser.name || "Unknown"} ${
+              device.browser.version || ""
+            }`.trim(),
+            os: `${device.os.name || "Unknown"} ${
+              device.os.version || ""
+            }`.trim(),
+            device: device.device.type || "desktop",
+            model: device.device.model || null,
           },
-          "All sessions returned"
-        )
-      );
+          createdAt: s.createdAt,
+          expiresAt: s.expiresAt,
+          isCurrentSession: s.id === user.sessionId,
+        };
+      });
+
+      res
+        .status(STATUS_CODE.SUCCESS)
+        .json(
+          new ApiResponse(
+            STATUS_CODE.SUCCESS,
+            { sessions: parsedSessions },
+            "All sessions returned"
+          )
+        );
     } catch (error) {
       next(error);
     }
@@ -232,6 +261,91 @@ export class AuthController {
             STATUS_CODE.SUCCESS,
             null,
             "User logged out from all devices"
+          )
+        );
+    } catch (error) {
+      next(error);
+    }
+  }
+  async getSessionById(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.user) {
+        throw new ApiError(STATUS_CODE.UNAUTHORIZED, "Not authenticated");
+      }
+
+      const { id } = req.params;
+      AppAssert(id, STATUS_CODE.BAD_REQUEST, "Session ID is required");
+
+      const session = await refreshTokenService.getTokenById(id);
+      AppAssert(session, STATUS_CODE.NOT_FOUND, "Session not found");
+
+      // Ensure user can only access their own sessions
+      AppAssert(
+        session.userId === req.user.userId,
+        STATUS_CODE.FORBIDDEN,
+        "Access denied"
+      );
+
+      const parser = new UAParser(session.userAgent || "");
+      const device = parser.getResult();
+
+      res.status(STATUS_CODE.SUCCESS).json(
+        new ApiResponse(
+          STATUS_CODE.SUCCESS,
+          {
+            session: {
+              id: session.id,
+              device: {
+                browser: `${device.browser.name || "Unknown"} ${
+                  device.browser.version || ""
+                }`.trim(),
+                os: `${device.os.name || "Unknown"} ${
+                  device.os.version || ""
+                }`.trim(),
+                device: device.device.type || "desktop",
+                model: device.device.model || null,
+                userAgent: session.userAgent,
+              },
+              createdAt: session.createdAt,
+              expiresAt: session.expiresAt,
+              isCurrentSession: session.id === req.user.sessionId,
+            },
+          },
+          "Session returned"
+        )
+      );
+    } catch (error) {
+      next(error);
+    }
+  }
+  async revokeSessionById(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.user) {
+        throw new ApiError(STATUS_CODE.UNAUTHORIZED, "Not authenticated");
+      }
+
+      const { id } = req.params;
+      AppAssert(id, STATUS_CODE.BAD_REQUEST, "Session ID is required");
+
+      const session = await refreshTokenService.getTokenById(id);
+      AppAssert(session, STATUS_CODE.NOT_FOUND, "Session not found");
+
+      // Ensure user can only revoke their own sessions
+      AppAssert(
+        session.userId === req.user.userId,
+        STATUS_CODE.FORBIDDEN,
+        "Access denied"
+      );
+
+      await refreshTokenService.revokeToken(id);
+
+      res
+        .status(STATUS_CODE.SUCCESS)
+        .json(
+          new ApiResponse(
+            STATUS_CODE.SUCCESS,
+            null,
+            "Session revoked successfully"
           )
         );
     } catch (error) {

@@ -73,6 +73,25 @@ export class RefreshTokenService {
         )
       );
   }
+  async getTokenById(tokenId: string) {
+    const record = await db
+      .select()
+      .from(refreshTokens)
+      .where(eq(refreshTokens.id, tokenId))
+      .limit(1);
+
+    return record[0] || null;
+  }
+  async revokeToken(tokenId: string) {
+    await db
+      .update(refreshTokens)
+      .set({
+        isRevoked: true,
+        revokedAt: new Date(),
+        revokedReason: "Revoked by user",
+      })
+      .where(eq(refreshTokens.id, tokenId));
+  }
 }
 
 export const refreshTokenService = new RefreshTokenService();

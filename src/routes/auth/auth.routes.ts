@@ -6,10 +6,7 @@ import { registerSchema, loginSchema } from "../../utils/auth/validations";
 
 const authRouter = Router();
 
-
-// prefix : /auth/
-
-
+// prefix : http://localhost:3000/auth/
 
 // public route
 authRouter.post(
@@ -18,20 +15,22 @@ authRouter.post(
   authController.registerUser
 );
 
+authRouter.post("/login", validate(loginSchema), authController.loginUser);
 
-authRouter.post('/login',validate(loginSchema),authController.loginUser);
-
-
-authRouter.post('/refresh',authController.refreshTheTokens);
-
+authRouter.post("/refresh", authController.refreshTheTokens);
 
 // protected routes
 
-authRouter.post('/logout',authenticate,authController.logoutUser);
+authRouter.post("/logout", authenticate, authController.logoutUser);
 
-authRouter.get('/me',authenticate,authController.Me);
-authRouter.get('/sessions',authenticate,authController.allSessions);
-authRouter.delete('/sessions',authenticate,authController.revokeAllSessions);
+authRouter.get("/me", authenticate, authController.Me);
+authRouter.get("/sessions", authenticate, authController.allSessions);
+authRouter.get("/sessions/:id", authenticate, authController.getSessionById);
+authRouter.delete("/sessions", authenticate, authController.revokeAllSessions);
+authRouter.delete(
+  "/sessions/:id",
+  authenticate,
+  authController.revokeSessionById
+);
 
-
-export {authRouter};
+export { authRouter };

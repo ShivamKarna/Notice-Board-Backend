@@ -68,7 +68,7 @@ export class AuthService {
     };
     const accessToken = signAccessToken(accesstokeninput);
 
-    const refreshToken = await createRefreshToken(newUser.id);
+    const refreshToken = await createRefreshToken(newUser.id, input.userAgent);
 
     // return response
     return {
@@ -116,7 +116,7 @@ export class AuthService {
       sessionId: session.id,
     });
 
-    const refreshToken = await createRefreshToken(user.id);
+    const refreshToken = await createRefreshToken(user.id, input.userAgent);
 
     return {
       user: {
@@ -149,7 +149,6 @@ export class AuthService {
       .from(usersTable)
       .where(eq(usersTable.id, userId));
     return user || null;
-
+  }
 }
-};
 export const authService = new AuthService();

@@ -53,7 +53,8 @@ export const signRefreshToken = (
 };
 
 export async function createRefreshToken(
-  userId: string
+  userId: string,
+  userAgent?: string
 ): Promise<{ token: string; tokenId: string }> {
   const expiresAt = new Date(
     Date.now() + ms(JWT_REFRESH_SECRET_EXPIRES_IN as any)
@@ -63,13 +64,18 @@ export async function createRefreshToken(
   const [tokenRecord] = await db
     .insert(refreshTokens)
     .values({
-      token: "placeholder", // fow now, just temporary 
+      token: "placeholder", // fow now, just temporary
       userId,
+      userAgent,
       expiresAt,
     })
     .returning();
 
-  AppAssert(tokenRecord, STATUS_CODE.INTERNAL_SERVER_ERROR, "Failed to create refresh token record");
+  AppAssert(
+    tokenRecord,
+    STATUS_CODE.INTERNAL_SERVER_ERROR,
+    "Failed to create refresh token record"
+  );
   // Generate JWT with tokenId
   const token = signRefreshToken({
     userId,
