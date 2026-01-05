@@ -27,7 +27,6 @@ export class PermissionService {
         and(
           eq(groupMembers.userId, userId),
           eq(groupMembers.groupId, groupId),
-          eq(groupMembers.isActive, true),
           eq(permissions.action, permissionAction)
         )
       )
@@ -36,39 +35,40 @@ export class PermissionService {
     return result.length > 0;
   }
   // get user role
-  async getUserRole (userId: string, groupId : string){
+  async getUserRole(userId: string, groupId: string) {
     const [member] = await db
       .select({
-        roleId : groupMembers.roleId,
-        roleName : roles.name,
-        roleLevel : roles.level,
-        canPost : groupMembers.canPost,
-        canComment : groupMembers.canComment,
-        isActive : groupMembers.isActive,
+        roleId: groupMembers.roleId,
+        roleName: roles.name,
+        roleLevel: roles.level,
+        canPost: groupMembers.canPost,
+        canComment: groupMembers.canComment,
+        isActive: groupMembers.isActive,
       })
       .from(groupMembers)
-      .innerJoin(roles,eq(groupMembers.roleId, roles.id))
+      .innerJoin(roles, eq(groupMembers.roleId, roles.id))
       .where(
         and(
           eq(groupMembers.userId, userId),
-          eq(groupMembers.groupId,groupId),
-          eq(groupMembers.isActive,true)
+          eq(groupMembers.groupId, groupId),
+          eq(groupMembers.isActive, true)
         )
-      ).limit(1);
+      )
+      .limit(1);
     return member || null;
   }
   // check if user is owner
-  async isOwner(userId : string, groupId:string):Promise<boolean>{
+  async isOwner(userId: string, groupId: string): Promise<boolean> {
     const role = await this.getUserRole(userId, groupId);
-    return role?.roleName === 'Owner';
+    return role?.roleName === "Owner";
   }
   // check if user is admin or owner
-  async isOwnerOrAdmin(userId : string, groupId:string):Promise<boolean>{
+  async isOwnerOrAdmin(userId: string, groupId: string): Promise<boolean> {
     const role = await this.getUserRole(userId, groupId);
-    return role?.roleName === 'Owner'|| role?.roleName ==='Admin';
+    return role?.roleName === "Owner" || role?.roleName === "Admin";
   }
   // check if user is member of group
-  async isMember(userId: string, groupId : string):Promise<boolean>{
+  async isMember(userId: string, groupId: string): Promise<boolean> {
     const result = await this.getUserRole(userId, groupId);
     return result !== null;
   }
@@ -95,22 +95,43 @@ export class PermissionService {
         )
       )
       .limit(1);
-    return result.map(r => r.permission);
+    return result.map((r) => r.permission);
   }
 
-
   // get role by name
-  async getRoleByName(name : string){
-    const answer = await db.select().from(roles).where(eq(roles.name,name)).limit(1); 
+  async getRoleByName(name: string) {
+    const answer = await db
+      .select()
+      .from(roles)
+      .where(eq(roles.name, name))
+      .limit(1);
 
     return answer || null;
   }
   // get role by id
-  async getRoleById (userId : string){
-    const role = await db.select().from(roles).where(eq(roles.id,userId)).limit(1);
+  async getRoleById(userId: string) {
+    const role = await db.select().from(roles).where(eq(roles.id, userId));
 
     return role || null;
   }
+
+  async getUserPermissions(userId: string, groupId: string) :Promise<string[]>{
+    const result = await db
+      .select({ permissions: permissions.action })
+      .from(groupMembers)
+      .innerJoin(roles, eq(groupMembers.roleId, roles.id))
+      .innerJoin(rolePermissions, eq(roles.id, rolePermissions.roleId))
+      .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
+      .where(
+        and(
+          eq(groupMembers.userId, userId),
+          eq(groupMembers.groupId, groupId),
+          eq(groupMembers.isActive, true)
+        )
+      );
+
+    return result.map((r) => r.permissions);
+  }
 }
 
-const permissionService = new PermissionService();
+export const permissionService = new PermissionService();
