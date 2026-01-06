@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import { notificationService } from "./notification.service";
 import { and, desc, eq, notInArray } from "drizzle-orm";
 import { db } from "../db/postgres/db.postgres";
 import {
@@ -20,7 +21,6 @@ import { CORS_ORIGIN } from "../utils/env";
 import { _success } from "zod/v4/core";
 
 export class GroupService {
-  // TODO:: implement these functions
 
   // createGroup
   async createGroup(userId: string, input: CreateGroupInput) {
@@ -373,7 +373,7 @@ export class GroupService {
       "Inviter doesn't exist"
     );
 
-    await notificationService.createNotification({   //TODO: notificationServices bnaba baki xai 
+    await notificationService.createNotification({
       userId: invitee.id,
       type: "group_invite",
       relatedEntityType: "invitation",
