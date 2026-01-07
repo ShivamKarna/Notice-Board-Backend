@@ -21,7 +21,6 @@ import { CORS_ORIGIN } from "../utils/env";
 import { _success } from "zod/v4/core";
 
 export class GroupService {
-
   // createGroup
   async createGroup(userId: string, input: CreateGroupInput) {
     const [group] = await db
@@ -452,8 +451,8 @@ export class GroupService {
     };
   }
 
-  // declineinvitation
-  async declineinvitation(token: string, userId: string) {
+  // declineInvitation
+  async declineInvitation(token: string, userId: string) {
     const [proposedInvitation] = await db
       .select()
       .from(invitations)
@@ -645,15 +644,15 @@ export class GroupService {
     const userInvitations = await db
       .select({
         invitation: invitations,
-        group : groups,
-        inviter:{
-          id : usersTable.id,
-          name : usersTable.username
+        group: groups,
+        inviter: {
+          id: usersTable.id,
+          name: usersTable.username,
         },
         role: {
-          id : roles.id,
-          roleName : roles.name
-        }
+          id: roles.id,
+          roleName: roles.name,
+        },
       })
       .from(invitations)
       .innerJoin(groups, eq(invitations.groupId, groups.id))

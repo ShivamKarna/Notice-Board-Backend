@@ -7,6 +7,8 @@ export const usersTable = pgTable("users", {
   password: text("password").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   lastLoginAt: timestamp("last_login_at"),
+  deletedAt: timestamp("deleted_at"), // soft delete timestamp
+  isDeleted: boolean("is_deleted").notNull().default(false), // quick lookup flag
 });
 
 export const userSessions = pgTable("user_sessions", {

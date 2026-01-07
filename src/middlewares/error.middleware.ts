@@ -2,7 +2,6 @@ import type { Request, Response, NextFunction } from "express";
 import { ZodError } from "zod";
 import { ApiError } from "../utils/ApiError";
 
-
 export const errorHandler = (
   err: Error,
   req: Request,

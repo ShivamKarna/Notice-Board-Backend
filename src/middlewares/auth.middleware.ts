@@ -4,6 +4,9 @@ import { verifyAccessToken, type AccesstokenPayload } from "../utils/auth/jwt";
 import { AppAssert } from "../utils/AppAssert";
 import { STATUS_CODE } from "../types/httpStatus";
 import { ApiError } from "../utils/ApiError";
+import { db } from "../db/postgres/db.postgres";
+import { usersTable } from "../db/postgres/schemas";
+import { and, eq } from "drizzle-orm";
 
 const authenticate = async (
   req: Request,
@@ -20,6 +23,22 @@ const authenticate = async (
     const payload = verifyAccessToken<AccesstokenPayload>(token);
 
     AppAssert(payload, STATUS_CODE.UNAUTHORIZED, "Invalid or expired Token");
+
+    // Check if user is deleted
+    const [user] = await db
+      .select({ isDeleted: usersTable.isDeleted })
+      .from(usersTable)
+      .where(
+        and(eq(usersTable.id, payload.userId), eq(usersTable.isDeleted, false))
+      )
+      .limit(1);
+
+    if (!user) {
+      throw new ApiError(
+        STATUS_CODE.FORBIDDEN,
+        "Account has been deleted or does not exist"
+      );
+    }
 
     // attach user to Request
     req.user = payload;
