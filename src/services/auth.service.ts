@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, and, lt } from "drizzle-orm";
 import { db } from "../db/postgres/db.postgres";
 import { usersTable } from "../db/postgres/schemas";
 import { ApiError } from "../utils/ApiError";
@@ -88,6 +88,13 @@ export class AuthService {
 
     AppAssert(user, STATUS_CODE.UNAUTHORIZED, "Incorrect email or password");
 
+    if (user.isDeleted) {
+      throw new ApiError(
+        STATUS_CODE.FORBIDDEN,
+        "This account has been deleted"
+      );
+    }
+
     const isPasswordCorrect = await comparePassword(
       input.password,
       user.password
@@ -149,6 +156,47 @@ export class AuthService {
       .from(usersTable)
       .where(eq(usersTable.id, userId));
     return user || null;
+  }
+
+  async deleteAccount(userId: string) {
+    // Soft delete user account
+    const [deletedUser] = await db
+      .update(usersTable)
+      .set({
+        isDeleted: true,
+        deletedAt: new Date(),
+      })
+      .where(eq(usersTable.id, userId))
+      .returning({ id: usersTable.id, username: usersTable.username });
+
+    AppAssert(deletedUser, STATUS_CODE.NOT_FOUND, "User not found");
+
+    // Revoke all tokens
+    await revokeAllUserTokens(userId, "Account deleted");
+
+    return {
+      success: true,
+      message:
+        "Account scheduled for deletion. Data will be permanently removed after 30 days.",
+    };
+  }
+
+  async permanentlyDeleteOldAccounts() {
+    // Delete accounts that have been soft-deleted for more than 30 days
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const result = await db
+      .delete(usersTable)
+      .where(
+        and(
+          eq(usersTable.isDeleted, true),
+          lt(usersTable.deletedAt, thirtyDaysAgo)
+        )
+      )
+      .returning({ id: usersTable.id });
+
+    return result.length;
   }
 }
 export const authService = new AuthService();

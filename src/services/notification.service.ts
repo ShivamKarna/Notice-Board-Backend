@@ -34,19 +34,25 @@ export class NotificationService {
       .orderBy(desc(notifications.createdAt));
   }
 
-  async markAsRead(notificationId : string, userId : string){
-    await db.update(notifications).set({isRead: true}).where(
-      and(
-        eq(notifications.id, notificationId),
-        eq(notifications.userId, userId),
-      )
-    )
+  async markAsRead(notificationId: string, userId: string) {
+    await db
+      .update(notifications)
+      .set({ isRead: true })
+      .where(
+        and(
+          eq(notifications.id, notificationId),
+          eq(notifications.userId, userId)
+        )
+      );
   }
 
-  async markAllAsRead(userId : string){
-    await db.update(notifications).set({
-      isRead : true
-    }).where(eq(notifications.userId, userId));
+  async markAllAsRead(userId: string) {
+    await db
+      .update(notifications)
+      .set({
+        isRead: true,
+      })
+      .where(eq(notifications.userId, userId));
   }
 }
 

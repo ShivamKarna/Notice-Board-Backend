@@ -115,7 +115,7 @@ export class PermissionService {
     return role || null;
   }
 
-  async getUserPermissions(userId: string, groupId: string) :Promise<string[]>{
+  async getUserPermissions(userId: string, groupId: string): Promise<string[]> {
     const result = await db
       .select({ permissions: permissions.action })
       .from(groupMembers)
