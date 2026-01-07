@@ -352,6 +352,32 @@ export class AuthController {
       next(error);
     }
   }
+
+  async deleteAccount(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.user) {
+        throw new ApiError(STATUS_CODE.UNAUTHORIZED, "Not authenticated");
+      }
+
+      const result = await authService.deleteAccount(req.user.userId);
+
+      // Clear cookies
+      res.clearCookie("session_token");
+      res.clearCookie("refresh_token");
+
+      res
+        .status(STATUS_CODE.SUCCESS)
+        .json(
+          new ApiResponse(
+            STATUS_CODE.SUCCESS,
+            result,
+            "Account deleted successfully"
+          )
+        );
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export const authController = new AuthController();

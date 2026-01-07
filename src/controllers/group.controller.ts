@@ -6,6 +6,7 @@ import { AsyncHandler } from "../utils/AsyncHandler";
 import { AppAssert } from "../utils/AppAssert";
 import { STATUS_CODE } from "../types/httpStatus.ts";
 import { ApiResponse } from "../utils/ApiResponse.ts";
+// Functions in the controller 
 // createGroup
 //getUserGroups
 //getPublicGroups
