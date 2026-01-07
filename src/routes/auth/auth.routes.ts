@@ -1,8 +1,4 @@
-
-
-// TODO: update user controller, service, and routes is remaining to do 
-
-
+// TODO: update user controller, service, and routes is remaining to do
 
 import { Router } from "express";
 import { authController } from "../../controllers/auth.controller";
@@ -38,5 +34,7 @@ authRouter.delete(
   authenticate,
   authController.revokeSessionById
 );
+
+authRouter.delete("/account", authenticate, authController.deleteAccount);
 
 export { authRouter };
