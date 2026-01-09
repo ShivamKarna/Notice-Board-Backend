@@ -562,9 +562,9 @@ export class PostServices {
     let filteredPosts = userPosts;
     if (requesterId !== userId) {
       // Only show published posts to others
-      filteredPosts = userPosts.filter(p => p.post.status === 'published');
+      filteredPosts = userPosts.filter((p) => p.post.status === "published");
     }
-     const postsWithMedia = await Promise.all(
+    const postsWithMedia = await Promise.all(
       filteredPosts.map(async (item) => {
         const postMedia = await db
           .select()
