@@ -24,7 +24,7 @@ export const storage = new CloudinaryStorage({
   },
 });
 
-export async function deleteImage(publicId: string): Promise<void> {
+export async function cloudinaryDeleteImage(publicId: string): Promise<void> {
   try {
     await cloudinary.uploader.destroy(publicId);
   } catch (error) {
@@ -34,7 +34,7 @@ export async function deleteImage(publicId: string): Promise<void> {
 }
 
 // get public_url from cloudinary
-export function getPublicIdFromUrl(url: string) {
+export function cloudinaryGetPublicIdFromUrl(url: string) {
   try {
     const matches = url.match(/\/v\d+\/(.+)\.\w+$/);
     return matches ? matches[1] : null;
