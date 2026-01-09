@@ -1,12 +1,12 @@
 import type { Request, Response, NextFunction } from "express";
-import { groupService } from "../services/group.services";
+import { groupService } from "../services/group.service.ts";
 import { permissionService } from "../services/permission.service";
 import { ApiError } from "../utils/ApiError.ts";
 import { AsyncHandler } from "../utils/AsyncHandler";
 import { AppAssert } from "../utils/AppAssert";
 import { STATUS_CODE } from "../types/httpStatus.ts";
 import { ApiResponse } from "../utils/ApiResponse.ts";
-// Functions in the controller 
+// Functions in the controller
 // createGroup
 //getUserGroups
 //getPublicGroups
