@@ -545,6 +545,43 @@ export class PostServices {
     return postsWithMedia;
   }
 
+  async getUserPosts(userId: string, requesterId?: string) {
+    const userPosts = await db
+      .select({
+        post: posts,
+        group: {
+          id: groups.id,
+          name: groups.name,
+        },
+      })
+      .from(posts)
+      .innerJoin(groups, eq(posts.groupId, groups.id))
+      .where(eq(posts.authorId, userId))
+      .orderBy(desc(posts.createdAt));
+
+    let filteredPosts = userPosts;
+    if (requesterId !== userId) {
+      // Only show published posts to others
+      filteredPosts = userPosts.filter(p => p.post.status === 'published');
+    }
+     const postsWithMedia = await Promise.all(
+      filteredPosts.map(async (item) => {
+        const postMedia = await db
+          .select()
+          .from(media)
+          .where(eq(media.postId, item.post.id))
+          .orderBy(media.order);
+
+        return {
+          ...item,
+          media: postMedia,
+        };
+      })
+    );
+
+    return postsWithMedia;
+  }
+
   //this is the arrow of the main class wrapper
 }
 
