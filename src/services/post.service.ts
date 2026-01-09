@@ -460,7 +460,11 @@ export class PostServices {
   }
 
   async getGroupPosts(groupId: string, userId?: string, status?: string) {
-    let query = db
+    const whereConditions = status
+      ? and(eq(posts.groupId, groupId), eq(posts.status, status))
+      : and(eq(posts.groupId, groupId), eq(posts.status, "published"));
+
+    const groupPosts = await db
       .select({
         post: posts,
         author: {
@@ -470,19 +474,8 @@ export class PostServices {
       })
       .from(posts)
       .innerJoin(usersTable, eq(posts.authorId, usersTable.id))
-      .where(eq(posts.groupId, groupId));
-
-    if (status) {
-      query = query.where(
-        and(eq(posts.groupId, groupId), eq(posts.status, status))
-      );
-    } else {
-      query = query.where(
-        and(eq(posts.groupId, groupId), eq(posts.status, "published"))
-      );
-    }
-
-    const groupPosts = await query.orderBy(desc(posts.publishedAt));
+      .where(whereConditions)
+      .orderBy(desc(posts.publishedAt));
     // Get media for each post
     const postsWithMedia = await Promise.all(
       groupPosts.map(async (item) => {
