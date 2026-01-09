@@ -9,7 +9,10 @@ import {
 } from "../db/postgres/schemas";
 import { permissionService } from "./permission.service";
 import { notificationService } from "./notification.service";
-import { cloudinaryDeleteImage, cloudinaryGetPublicIdFromUrl } from "../config/cloudinary.config";
+import {
+  cloudinaryDeleteImage,
+  cloudinaryGetPublicIdFromUrl,
+} from "../config/cloudinary.config";
 import type {
   CreatePostInput,
   UpdatePostInput,
@@ -17,7 +20,7 @@ import type {
 import { AppAssert } from "../utils/AppAssert";
 import { STATUS_CODE } from "../types/httpStatus";
 import { ApiError } from "../utils/ApiError";
-import { and, eq } from "drizzle-orm";
+import { and, eq, desc } from "drizzle-orm";
 
 export class PostServices {
   // Things to do
@@ -271,98 +274,283 @@ export class PostServices {
 
     await db
       .update(postApprovals)
-      .set({status : 'rejected',reviewedBy : reviewerId,reviewAt : new Date(),rejectionReason : 'reason'})
+      .set({
+        status: "rejected",
+        reviewedBy: reviewerId,
+        reviewAt: new Date(),
+        rejectionReason: "reason",
+      })
       .where(eq(postApprovals.postId, postId));
 
-    const [reviewer] = await db.select().from(usersTable).where(eq(usersTable.id, reviewerId));
-    AppAssert(reviewer,STATUS_CODE.NOT_FOUND,"Reviewer with this id not found");
+    const [reviewer] = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.id, reviewerId));
+    AppAssert(
+      reviewer,
+      STATUS_CODE.NOT_FOUND,
+      "Reviewer with this id not found"
+    );
 
     await notificationService.createNotification({
       userId: post.authorId,
-      type: 'post_rejected',
-      relatedEntityType: 'post',
+      type: "post_rejected",
+      relatedEntityType: "post",
       relatedEntityId: postId,
       message: `Your post "${post.title}" was rejected by ${reviewer.username}. Reason: ${reason}`,
     });
 
-    return { success: true, message: 'Post rejected' };
+    return { success: true, message: "Post rejected" };
   }
 
-  async updatePost(postId : string,userId : string, input: UpdatePostInput){
-
+  async updatePost(postId: string, userId: string, input: UpdatePostInput) {
     const [post] = await db
       .select()
       .from(posts)
       .where(eq(posts.id, postId))
       .limit(1);
 
-    AppAssert(post,STATUS_CODE.NOT_FOUND,"Post with this ID not found");
+    AppAssert(post, STATUS_CODE.NOT_FOUND, "Post with this ID not found");
 
     const isAuthor = post.authorId === userId;
-    AppAssert(isAuthor,STATUS_CODE.UNAUTHORIZED,"You are not the author of this post");
+    AppAssert(
+      isAuthor,
+      STATUS_CODE.UNAUTHORIZED,
+      "You are not the author of this post"
+    );
     const hasEditPermission = await permissionService.hasPermission(
       userId,
       post.groupId,
-      'post:edit'
+      "post:edit"
     );
-    AppAssert(hasEditPermission,STATUS_CODE.UNAUTHORIZED,"You do not have permission to edit post");
+    AppAssert(
+      hasEditPermission,
+      STATUS_CODE.UNAUTHORIZED,
+      "You do not have permission to edit post"
+    );
 
     let newStatus = post.status;
 
     // agr post publis vagel xai and still being edited again , then change status to draft again ofc
-    if(post.status ==='published' && isAuthor){
-      newStatus = 'draft';
+    if (post.status === "published" && isAuthor) {
+      newStatus = "draft";
     }
 
-    const updatedPost = await db.update(posts).set({
-      ...input,
-      status : newStatus,
-      updatedAt : new Date(),
-    }).where(eq(posts.id, postId)).returning();
-
+    const updatedPost = await db
+      .update(posts)
+      .set({
+        ...input,
+        status: newStatus,
+        updatedAt: new Date(),
+      })
+      .where(eq(posts.id, postId))
+      .returning();
 
     return updatedPost;
   }
 
-  async deletePost(postId : string, userId : string){
+  async deletePost(postId: string, userId: string) {
     const [post] = await db
       .select()
       .from(posts)
       .where(eq(posts.id, postId))
       .limit(1);
 
-
-    AppAssert(post,STATUS_CODE.NOT_FOUND,"Post with this id not found");
+    AppAssert(post, STATUS_CODE.NOT_FOUND, "Post with this id not found");
 
     const isAuthor = post.authorId === userId;
     const hasDeletePermission = await permissionService.hasPermission(
       userId,
       post.groupId,
-      'post:delete'
+      "post:delete"
     );
 
-    if(!isAuthor && !hasDeletePermission){
-      throw new ApiError(STATUS_CODE.UNAUTHORIZED,"You do not have persmission to delete this post");
+    if (!isAuthor && !hasDeletePermission) {
+      throw new ApiError(
+        STATUS_CODE.UNAUTHORIZED,
+        "You do not have persmission to delete this post"
+      );
     }
 
     // delete post media
-    const postMedia = await db.select().from(media).where(eq(media.postId,postId));
+    const postMedia = await db
+      .select()
+      .from(media)
+      .where(eq(media.postId, postId));
 
-    for(const mediaItem of postMedia){
+    for (const mediaItem of postMedia) {
       const publicId = cloudinaryGetPublicIdFromUrl(mediaItem.url);
-      if(publicId){
+      if (publicId) {
         await cloudinaryDeleteImage(publicId);
       }
-
     }
 
-    await db.delete(posts).where(eq(posts.id,postId));
+    await db.delete(posts).where(eq(posts.id, postId));
 
-    return {success : true, messsage : "Post deleted successfully"};
+    return { success: true, messsage: "Post deleted successfully" };
   }
 
+  async getPostById(postId: string, userId?: string) {
+    const [post] = await db
+      .select({
+        post: posts,
+        author: {
+          id: usersTable.id,
+          username: usersTable.username,
+        },
+        group: {
+          id: groups.id,
+          name: groups.name,
+        },
+      })
+      .from(posts)
+      .innerJoin(usersTable, eq(posts.authorId, usersTable.id))
+      .innerJoin(groups, eq(posts.groupId, groups.id))
+      .where(eq(posts.id, postId))
+      .limit(1);
 
+    if (!post) {
+      return null;
+    }
 
+    // Get media
+    const postMedia = await db
+      .select()
+      .from(media)
+      .where(eq(media.postId, postId))
+      .orderBy(media.order);
+    if (userId) {
+      const isMember = await permissionService.isMember(
+        userId,
+        post.post.groupId
+      );
+      const isAuthor = post.post.authorId === userId;
+      const isAdminOrOwner = await permissionService.isOwnerOrAdmin(
+        userId,
+        post.post.groupId
+      );
+
+      // Draft and pending posts only visible to author and admins
+      if (
+        (post.post.status === "draft" ||
+          post.post.status === "pending_approval") &&
+        !isAuthor &&
+        !isAdminOrOwner
+      ) {
+        return null;
+      }
+
+      // Members-only posts
+      if (post.post.visibility === "members_only" && !isMember) {
+        return null;
+      }
+    } else {
+      // Guest users can only see published public posts
+      if (
+        post.post.status !== "published" ||
+        post.post.visibility !== "public"
+      ) {
+        return null;
+      }
+    }
+    return {
+      ...post,
+      media: postMedia,
+    };
+  }
+
+  async getGroupPosts(groupId: string, userId?: string, status?: string) {
+    let query = db
+      .select({
+        post: posts,
+        author: {
+          id: usersTable.id,
+          username: usersTable.username,
+        },
+      })
+      .from(posts)
+      .innerJoin(usersTable, eq(posts.authorId, usersTable.id))
+      .where(eq(posts.groupId, groupId));
+
+    if (status) {
+      query = query.where(
+        and(eq(posts.groupId, groupId), eq(posts.status, status))
+      );
+    } else {
+      query = query.where(
+        and(eq(posts.groupId, groupId), eq(posts.status, "published"))
+      );
+    }
+
+    const groupPosts = await query.orderBy(desc(posts.publishedAt));
+    // Get media for each post
+    const postsWithMedia = await Promise.all(
+      groupPosts.map(async (item) => {
+        const postMedia = await db
+          .select()
+          .from(media)
+          .where(eq(media.postId, item.post.id))
+          .orderBy(media.order);
+
+        return {
+          ...item,
+          media: postMedia,
+        };
+      })
+    );
+
+    return postsWithMedia;
+  }
+  async getPendingPosts(groupId: string, userId: string) {
+    const isAdminOrOwner = await permissionService.isOwnerOrAdmin(
+      userId,
+      groupId
+    );
+
+    if (!isAdminOrOwner) {
+      throw new ApiError(
+        STATUS_CODE.BAD_REQUEST,
+        "Only admins and owners can view pending posts"
+      );
+    }
+
+    const pendingPosts = await db
+      .select({
+        post: posts,
+        author: {
+          id: usersTable.id,
+          username: usersTable.username,
+        },
+        approval: postApprovals,
+      })
+      .from(posts)
+      .innerJoin(usersTable, eq(posts.authorId, usersTable.id))
+      .innerJoin(postApprovals, eq(posts.id, postApprovals.postId))
+      .where(
+        and(
+          eq(posts.groupId, groupId),
+          eq(posts.status, "pending_approval"),
+          eq(postApprovals.status, "pending")
+        )
+      )
+      .orderBy(desc(posts.submittedAt));
+    const postsWithMedia = await Promise.all(
+      pendingPosts.map(async (item) => {
+        const postMedia = await db
+          .select()
+          .from(media)
+          .where(eq(media.postId, item.post.id))
+          .orderBy(media.order);
+
+        return {
+          ...item,
+          media: postMedia,
+        };
+      })
+    );
+
+    return postsWithMedia;
+  }
 
   //this is the arrow of the main class wrapper
 }
