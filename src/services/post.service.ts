@@ -617,11 +617,11 @@ export class PostServices {
       .limit(1);
 
     if (!post) {
-      throw new Error('Post not found');
+      throw new ApiError(STATUS_CODE.NOT_FOUND,'Post not found');
     }
 
     if (post.authorId !== userId) {
-      throw new Error('You can only remove media from your own posts');
+      throw new ApiError(STATUS_CODE.UNAUTHORIZED,"You can only delete media from your posts");
     }
 
     const [mediaItem] = await db
@@ -631,7 +631,7 @@ export class PostServices {
       .limit(1);
 
     if (!mediaItem) {
-      throw new Error('Media not found');
+      throw new ApiError(STATUS_CODE.NOT_FOUND,"Media not found");
     }
     const publicId = cloudinaryGetPublicIdFromUrl(mediaItem.url);
     if (publicId) {
