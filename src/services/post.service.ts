@@ -582,7 +582,66 @@ export class PostServices {
     return postsWithMedia;
   }
 
-  //this is the arrow of the main class wrapper
-}
+  async addMediaToPost(postId : string, userId : string, MediaUrls: string[]){
+    const [post] = await db.select().from(posts).where(eq(posts.id, postId));
+
+    if(!post){
+      throw new ApiError(STATUS_CODE.NOT_FOUND,"Post not found");
+    }
+
+    if(post.authorId !== userId){
+      throw new ApiError(STATUS_CODE.UNAUTHORIZED,"You can only add media to your own posts")
+    }
+    const alerady_existing_media_in_post = await db.select().from(media).where(eq(media.postId,postId));
+
+    if(alerady_existing_media_in_post.length + MediaUrls.length > 5){
+      throw new ApiError(STATUS_CODE.BAD_REQUEST,"Maximum 5 images allowed per post");
+    }
+
+    const mediaToInsert = MediaUrls.map((url,index)=>({
+      postId,
+      url,
+      order: alerady_existing_media_in_post.length + index + 1,
+    }));
+
+    const addedMedia =  await db.insert(media).values(mediaToInsert).returning();
+
+    return addedMedia;
+  }
+
+   async removeMediaFromPost(postId: string, mediaId: string, userId: string) {
+    const [post] = await db
+      .select()
+      .from(posts)
+      .where(eq(posts.id, postId))
+      .limit(1);
+
+    if (!post) {
+      throw new Error('Post not found');
+    }
+
+    if (post.authorId !== userId) {
+      throw new Error('You can only remove media from your own posts');
+    }
+
+    const [mediaItem] = await db
+      .select()
+      .from(media)
+      .where(eq(media.id, mediaId))
+      .limit(1);
+
+    if (!mediaItem) {
+      throw new Error('Media not found');
+    }
+    const publicId = cloudinaryGetPublicIdFromUrl(mediaItem.url);
+    if (publicId) {
+      await cloudinaryDeleteImage(publicId);
+    }
+
+    await db.delete(media).where(eq(media.id, mediaId));
+
+    return { success: true, message: 'Media removed successfully' };
+  }
+};
 
 export const postServices = new PostServices();
