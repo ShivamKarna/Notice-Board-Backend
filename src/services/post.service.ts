@@ -610,12 +610,8 @@ export class PostServices {
   }
 
    async removeMediaFromPost(postId: string, mediaId: string, userId: string) {
-    const [post] = await db
-      .select()
-      .from(posts)
-      .where(eq(posts.id, postId))
-      .limit(1);
 
+    const [post] = await db.select().from(posts).where(eq(posts.id,postId));
     if (!post) {
       throw new ApiError(STATUS_CODE.NOT_FOUND,'Post not found');
     }
