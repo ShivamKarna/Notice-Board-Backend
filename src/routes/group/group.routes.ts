@@ -10,6 +10,7 @@ import {
 } from "../../utils/GroupSchemas/group.ts";
 
 import { z } from "zod";
+import { groupPostRouter } from "../group.post.routes.ts";
 
 const groupRouter = Router();
 
@@ -82,5 +83,8 @@ groupRouter.patch(
   validate(z.object({ body: updateMemberRoleSchema })),
   groupController.updateMemberRole
 );
+
+// linked groupRouter to use groupPostRouter
+groupRouter.use("/:groupId/posts",groupPostRouter);
 
 export { groupRouter };
