@@ -9,6 +9,7 @@ import {
 } from "../db/postgres/schemas";
 import { permissionService } from "./permission.service";
 import { notificationService } from "./notification.service";
+import { cacheService } from "./redis_cache.service";
 import {
   cloudinaryDeleteImage,
   cloudinaryGetPublicIdFromUrl,
@@ -23,7 +24,12 @@ import { ApiError } from "../utils/ApiError";
 import { and, eq, desc } from "drizzle-orm";
 
 export class PostServices {
-  // Things to do
+  private readonly CACHE_TTL_SHORT = parseInt(
+    process.env.CACHE_TTL_SHORT || "300"
+  );
+  private readonly CACHE_TTL_MEDIUM = parseInt(
+    process.env.CACHE_TTL_MEDIUM || "1800"
+  );
   // Create a new post (draft mode)
   //submitPostForApproval
   //approvePost
@@ -73,6 +79,12 @@ export class PostServices {
       })
       .returning();
 
+    // Invalidate related caches
+    await cacheService.invalidateRelated([
+      `post:group:${groupId}*`,
+      `post:user:${userId}*`,
+    ]);
+
     return post;
   }
 
@@ -119,6 +131,14 @@ export class PostServices {
           updatedAt: new Date(),
         })
         .where(eq(posts.id, postId));
+
+      // Invalidate caches
+      await cacheService.deletePattern(`post:${postId}*`);
+      await cacheService.invalidateRelated([
+        `post:group:${post.groupId}*`,
+        `post:user:${userId}*`,
+      ]);
+
       return { status: "published", message: "Post published successfully" };
     }
 
@@ -172,6 +192,10 @@ export class PostServices {
         });
       }
     }
+
+    // Invalidate caches
+    await cacheService.deletePattern(`post:${postId}*`);
+    await cacheService.deletePattern(`post:pending:*`);
 
     return {
       status: "pending_approval",
@@ -235,6 +259,14 @@ export class PostServices {
       relatedEntityId: postId,
       message: `Your post "${post.title}" was approved by ${reviewer.username}`,
     });
+
+    // Invalidate related caches
+    await cacheService.deletePattern(`post:${postId}*`);
+    await cacheService.invalidateRelated([
+      `post:group:${post.groupId}*`,
+      `post:pending:*`,
+      `post:user:${post.authorId}*`,
+    ]);
 
     return { success: true, message: "Post approval Successful" };
   }
@@ -300,6 +332,10 @@ export class PostServices {
       message: `Your post "${post.title}" was rejected by ${reviewer.username}. Reason: ${reason}`,
     });
 
+    // Invalidate related caches
+    await cacheService.deletePattern(`post:${postId}*`);
+    await cacheService.deletePattern(`post:pending:*`);
+
     return { success: true, message: "Post rejected" };
   }
 
@@ -346,6 +382,13 @@ export class PostServices {
       .where(eq(posts.id, postId))
       .returning();
 
+    // Invalidate related caches
+    await cacheService.deletePattern(`post:${postId}*`);
+    await cacheService.invalidateRelated([
+      `post:group:${post.groupId}*`,
+      `post:user:${userId}*`,
+    ]);
+
     return updatedPost;
   }
 
@@ -387,10 +430,25 @@ export class PostServices {
 
     await db.delete(posts).where(eq(posts.id, postId));
 
+    // Invalidate related caches
+    await cacheService.deletePattern(`post:${postId}*`);
+    await cacheService.invalidateRelated([
+      `post:group:${post.groupId}*`,
+      `post:user:${userId}*`,
+    ]);
+
     return { success: true, messsage: "Post deleted successfully" };
   }
 
   async getPostById(postId: string, userId?: string) {
+    // Try to get from cache
+    const cacheKey = userId ? `${postId}:${userId}` : postId;
+    const cached = await cacheService.get<any>("post", cacheKey);
+
+    if (cached) {
+      return cached;
+    }
+
     const [post] = await db
       .select({
         post: posts,
@@ -453,13 +511,29 @@ export class PostServices {
         return null;
       }
     }
-    return {
+
+    const result = {
       ...post,
       media: postMedia,
     };
+
+    // Cache the result (30 minutes)
+    await cacheService.set("post", cacheKey, result, this.CACHE_TTL_MEDIUM);
+
+    return result;
   }
 
   async getGroupPosts(groupId: string, userId?: string, status?: string) {
+    // Try to get from cache
+    const cacheKey = `group:${groupId}:${status || "published"}:${
+      userId || "guest"
+    }`;
+    const cached = await cacheService.get<any>("post", cacheKey);
+
+    if (cached) {
+      return cached;
+    }
+
     const whereConditions = status
       ? and(eq(posts.groupId, groupId), eq(posts.status, status))
       : and(eq(posts.groupId, groupId), eq(posts.status, "published"));
@@ -492,6 +566,9 @@ export class PostServices {
       })
     );
 
+    // Cache the result (15 minutes)
+    await cacheService.set("post", cacheKey, postsWithMedia, 900);
+
     return postsWithMedia;
   }
   async getPendingPosts(groupId: string, userId: string) {
@@ -505,6 +582,14 @@ export class PostServices {
         STATUS_CODE.BAD_REQUEST,
         "Only admins and owners can view pending posts"
       );
+    }
+
+    // Try to get from cache
+    const cacheKey = `pending:${groupId}:${userId}`;
+    const cached = await cacheService.get<any>("post", cacheKey);
+
+    if (cached) {
+      return cached;
     }
 
     const pendingPosts = await db
@@ -542,10 +627,26 @@ export class PostServices {
       })
     );
 
+    // Cache the result with shorter TTL (5 minutes)
+    await cacheService.set(
+      "post",
+      cacheKey,
+      postsWithMedia,
+      this.CACHE_TTL_SHORT
+    );
+
     return postsWithMedia;
   }
 
   async getUserPosts(userId: string, requesterId?: string) {
+    // Try to get from cache
+    const cacheKey = `user:${userId}:${requesterId || "guest"}`;
+    const cached = await cacheService.get<any>("post", cacheKey);
+
+    if (cached) {
+      return cached;
+    }
+
     const userPosts = await db
       .select({
         post: posts,
@@ -579,45 +680,62 @@ export class PostServices {
       })
     );
 
+    // Cache the result (15 minutes)
+    await cacheService.set("post", cacheKey, postsWithMedia, 900);
+
     return postsWithMedia;
   }
 
-  async addMediaToPost(postId : string, userId : string, MediaUrls: string[]){
+  async addMediaToPost(postId: string, userId: string, MediaUrls: string[]) {
     const [post] = await db.select().from(posts).where(eq(posts.id, postId));
 
-    if(!post){
-      throw new ApiError(STATUS_CODE.NOT_FOUND,"Post not found");
+    if (!post) {
+      throw new ApiError(STATUS_CODE.NOT_FOUND, "Post not found");
     }
 
-    if(post.authorId !== userId){
-      throw new ApiError(STATUS_CODE.UNAUTHORIZED,"You can only add media to your own posts")
+    if (post.authorId !== userId) {
+      throw new ApiError(
+        STATUS_CODE.UNAUTHORIZED,
+        "You can only add media to your own posts"
+      );
     }
-    const alerady_existing_media_in_post = await db.select().from(media).where(eq(media.postId,postId));
+    const alerady_existing_media_in_post = await db
+      .select()
+      .from(media)
+      .where(eq(media.postId, postId));
 
-    if(alerady_existing_media_in_post.length + MediaUrls.length > 5){
-      throw new ApiError(STATUS_CODE.BAD_REQUEST,"Maximum 5 images allowed per post");
+    if (alerady_existing_media_in_post.length + MediaUrls.length > 5) {
+      throw new ApiError(
+        STATUS_CODE.BAD_REQUEST,
+        "Maximum 5 images allowed per post"
+      );
     }
 
-    const mediaToInsert = MediaUrls.map((url,index)=>({
+    const mediaToInsert = MediaUrls.map((url, index) => ({
       postId,
       url,
       order: alerady_existing_media_in_post.length + index + 1,
     }));
 
-    const addedMedia =  await db.insert(media).values(mediaToInsert).returning();
+    const addedMedia = await db.insert(media).values(mediaToInsert).returning();
+
+    // Invalidate post cache
+    await cacheService.deletePattern(`post:${postId}*`);
 
     return addedMedia;
   }
 
-   async removeMediaFromPost(postId: string, mediaId: string, userId: string) {
-
-    const [post] = await db.select().from(posts).where(eq(posts.id,postId));
+  async removeMediaFromPost(postId: string, mediaId: string, userId: string) {
+    const [post] = await db.select().from(posts).where(eq(posts.id, postId));
     if (!post) {
-      throw new ApiError(STATUS_CODE.NOT_FOUND,'Post not found');
+      throw new ApiError(STATUS_CODE.NOT_FOUND, "Post not found");
     }
 
     if (post.authorId !== userId) {
-      throw new ApiError(STATUS_CODE.UNAUTHORIZED,"You can only delete media from your posts");
+      throw new ApiError(
+        STATUS_CODE.UNAUTHORIZED,
+        "You can only delete media from your posts"
+      );
     }
 
     const [mediaItem] = await db
@@ -627,7 +745,7 @@ export class PostServices {
       .limit(1);
 
     if (!mediaItem) {
-      throw new ApiError(STATUS_CODE.NOT_FOUND,"Media not found");
+      throw new ApiError(STATUS_CODE.NOT_FOUND, "Media not found");
     }
     const publicId = cloudinaryGetPublicIdFromUrl(mediaItem.url);
     if (publicId) {
@@ -636,8 +754,11 @@ export class PostServices {
 
     await db.delete(media).where(eq(media.id, mediaId));
 
-    return { success: true, message: 'Media removed successfully' };
+    // Invalidate post cache
+    await cacheService.deletePattern(`post:${postId}*`);
+
+    return { success: true, message: "Media removed successfully" };
   }
-};
+}
 
 export const postServices = new PostServices();
