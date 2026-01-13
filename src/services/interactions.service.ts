@@ -42,7 +42,6 @@ export class InteractionServices {
     process.env.CACHE_TTL_MEDIUM || "1800"
   );
 
-  // things to do :
   // For comments:
 
   // createComment
