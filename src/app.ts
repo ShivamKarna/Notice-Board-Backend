@@ -8,6 +8,9 @@ import { CORS_ORIGIN } from "./utils/env";
 import cookieParser from "cookie-parser";
 import { errorHandler } from "./middlewares/error.middleware";
 import router from "./routes/index";
+import redis from './config/redis.config.ts';
+
+
 const app: Application = express();
 
 app.use(
