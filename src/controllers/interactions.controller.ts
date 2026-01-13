@@ -200,9 +200,19 @@ export class InteractionController {
         throw new ApiError(STATUS_CODE.UNAUTHORIZED, "AUthentication Required");
       }
 
-      const result = await interactionServices.getUserLikedPost(req.user.userId);
+      const result = await interactionServices.getUserLikedPost(
+        req.user.userId
+      );
 
-      res.status(STATUS_CODE.SUCCESS).json(new ApiResponse(STATUS_CODE.SUCCESS,result,"Posts liked by user returned"));
+      res
+        .status(STATUS_CODE.SUCCESS)
+        .json(
+          new ApiResponse(
+            STATUS_CODE.SUCCESS,
+            result,
+            "Posts liked by user returned"
+          )
+        );
     }
   );
 }
