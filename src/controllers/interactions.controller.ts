@@ -217,4 +217,4 @@ export class InteractionController {
   );
 }
 
-export const intereactionController = new InteractionController();
+export const interactionController = new InteractionController();
