@@ -25,7 +25,15 @@ type Comment = {
   content: string;
   createdAt: Date;
 };
-("");
+
+type PostLike = {
+  user: {
+    id: string;
+    username: string;
+  };
+  likedAt: Date;
+};
+
 export class InteractionServices {
   private readonly CACHE_TTL_SHORT = parseInt(
     process.env.CACHE_TTL_SHORT || "300"
@@ -90,7 +98,10 @@ export class InteractionServices {
     const userRole = await permissionService.getUserRole(userId, post.groupId);
 
     if (!userRole?.canComment) {
-      throw new Error("You do not have permission to comment");
+      throw new ApiError(
+        STATUS_CODE.UNAUTHORIZED,
+        "You do not have permission to comment"
+      );
     }
 
     const [comment] = await db
@@ -187,57 +198,233 @@ export class InteractionServices {
     userId: string,
     input: UpdateCommentInput
   ) {
-    const [comment] = await db.select().from(comments).where(eq(comments.id,commentId));
-    AppAssert(comment, STATUS_CODE.NOT_FOUND,"Comment not found");
+    const [comment] = await db
+      .select()
+      .from(comments)
+      .where(eq(comments.id, commentId));
+    AppAssert(comment, STATUS_CODE.NOT_FOUND, "Comment not found");
 
-    if(comment.userId !== userId){
-      throw new ApiError(STATUS_CODE.UNAUTHORIZED,"You are not the author of the comment so you can not edit it");
+    if (comment.userId !== userId) {
+      throw new ApiError(
+        STATUS_CODE.UNAUTHORIZED,
+        "You are not the author of the comment so you can not edit it"
+      );
     }
 
-    const updatedComment = await db.update(comments).set({
-      content : input.content
-    }).where(eq(comments.id,commentId)).returning();
+    const updatedComment = await db
+      .update(comments)
+      .set({
+        content: input.content,
+      })
+      .where(eq(comments.id, commentId))
+      .returning();
 
-    await cacheService.delete('post-comments', comment.postId);
+    await cacheService.delete("post-comments", comment.postId);
 
     return updatedComment;
-
   }
 
   async deleteComment(commentId: string, userId: string) {
-    const [comment] = await db.select({comment : comments, post :posts}).from(comments).innerJoin(posts,eq(comments.postId,posts.id)).where(eq(comments.id,commentId)).limit(1);
+    const [comment] = await db
+      .select({ comment: comments, post: posts })
+      .from(comments)
+      .innerJoin(posts, eq(comments.postId, posts.id))
+      .where(eq(comments.id, commentId))
+      .limit(1);
 
-    if(!comment){
-      throw new ApiError(STATUS_CODE.NOT_FOUND,"Comment not found");
+    if (!comment) {
+      throw new ApiError(STATUS_CODE.NOT_FOUND, "Comment not found");
     }
 
     const isAuthor = comment.comment.userId === userId;
 
-    const hasDeletePermission = await permissionService.hasPermission(userId, comment.post.groupId, 'comment:delete');
+    const hasDeletePermission = await permissionService.hasPermission(
+      userId,
+      comment.post.groupId,
+      "comment:delete"
+    );
 
     if (!isAuthor && !hasDeletePermission) {
-      throw new ApiError(STATUS_CODE.UNAUTHORIZED,'You do not have permission to delete this comment');
+      throw new ApiError(
+        STATUS_CODE.UNAUTHORIZED,
+        "You do not have permission to delete this comment"
+      );
     }
 
     await db.delete(comments).where(eq(comments.id, commentId));
 
-    await cacheService.delete('post-comments', comment.comment.postId);
-    await cacheService.delete('post-comments-count', comment.comment.postId);
+    await cacheService.delete("post-comments", comment.comment.postId);
+    await cacheService.delete("post-comments-count", comment.comment.postId);
 
-    return {success : true, message : "Comment deleted successfully"};
+    return { success: true, message: "Comment deleted successfully" };
   }
 
   // Likes:
 
-  async likePost(userId: string, postId: string) {}
-  async unlikePost(userId: string, postId: string) {}
-  async hasUserLikedPost(userId: string, postId: string) {} //: Promise<boolean>
+  async likePost(userId: string, postId: string) {
+    const [post] = await db
+      .select()
+      .from(posts)
+      .where(eq(posts.id, postId))
+      .limit(1);
 
-  async getPostLikes(postId: string) {}
+    if (!post) {
+      throw new ApiError(STATUS_CODE.NOT_FOUND, "Post with this id not found");
+    }
+    if (post.status !== "published") {
+      throw new ApiError(
+        STATUS_CODE.BAD_REQUEST,
+        "Post is not published yet, can't like it"
+      );
+    }
 
-  async getPostLikesCount(postId: string) {}
+    const existingLike = await db
+      .select()
+      .from(likes)
+      .where(and(eq(likes.userId, usersTable.id), eq(likes.postId, post.id)));
 
-  async getUserLikedPost(userId: string) {}
+    if (existingLike.length > 0) {
+      throw new ApiError(
+        STATUS_CODE.CONFLICT,
+        "You have already liked this post"
+      );
+    }
+
+    // create like
+    await db.insert(likes).values({
+      userId,
+      postId,
+    });
+
+    await cacheService.increment("post-likes-count", postId);
+
+    await cacheService.addToSet("post-likes", postId, userId);
+
+    await cacheService.delete("post-likes-list", postId);
+    if (post.authorId !== userId) {
+      const [liker] = await db
+        .select()
+        .from(usersTable)
+        .where(eq(usersTable.id, userId));
+
+      await notificationService.createNotification({
+        userId: post.authorId,
+        type: "post_like",
+        relatedEntityType: "post",
+        relatedEntityId: postId,
+        message: `${liker?.username} liked your post "${post.title}"`,
+      });
+    }
+
+    return { success: true, message: "Post Liked successfully" };
+  }
+  async unlikePost(userId: string, postId: string) {
+    const existingLike = await db
+      .select()
+      .from(likes)
+      .where(and(eq(likes.userId, userId), eq(likes.postId, postId)))
+      .limit(1);
+
+    if (existingLike.length === 0) {
+      throw new ApiError(
+        STATUS_CODE.BAD_REQUEST,
+        "You have not liked this post"
+      );
+    }
+
+    await db
+      .delete(likes)
+      .where(and(eq(likes.userId, userId), eq(likes.postId, postId)));
+    await cacheService.decrement("post-likes-count", postId);
+
+    await cacheService.removeFromSet("post-likes", postId, userId);
+
+    await cacheService.delete("post-likes-list", postId);
+
+    return { success: true, message: "Post unliked successfully" };
+  }
+  async hasUserLikedPost(userId: string, postId: string): Promise<boolean> {
+    const inset = await cacheService.isMemberOfSet(
+      "post-likes",
+      postId,
+      userId
+    );
+    if (inset) {
+      return true;
+    }
+
+    const existingLike = await db
+      .select()
+      .from(likes)
+      .where(and(eq(likes.userId, userId), eq(likes.postId, postId)));
+
+    const hasLiked = existingLike.length > 0;
+
+    if (hasLiked) {
+      await cacheService.addToSet("post-likes", postId, userId);
+    }
+
+    return hasLiked;
+  }
+
+  async getPostLikes(postId: string): Promise<PostLike[]> {
+    const cache = await cacheService.get<PostLike[]>("post-likes-list", postId);
+
+    if (cache) {
+      return cache;
+    }
+
+    const postLikes = await db
+      .select({
+        user: {
+          id: usersTable.id,
+          username: usersTable.username,
+        },
+        likedAt: likes.createdAt,
+      })
+      .from(likes)
+      .innerJoin(usersTable, eq(likes.userId, usersTable.id))
+      .where(eq(likes.postId, postId))
+      .orderBy(desc(likes.createdAt));
+
+    // cache it again
+    await cacheService.set(
+      "post-likes-list",
+      postId,
+      postLikes,
+      this.CACHE_TTL_SHORT
+    );
+
+    return postLikes;
+  }
+
+  async getPostLikesCount(postId: string): Promise<number> {
+    const cache = await cacheService.get<number>("post-likes-count", postId);
+
+    if (cache !== null) {
+      return cache;
+    }
+
+    const [result] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(likes)
+      .where(eq(likes.postId, postId));
+
+    const likesCount = result?.count || 0;
+
+    return likesCount;
+  }
+
+  async getUserLikedPost(userId: string) {
+    const likedPosts = await db
+      .select({ post: posts, likedAt: likes.createdAt })
+      .from(likes)
+      .innerJoin(posts, eq(likes.postId, posts.id))
+      .where(eq(likes.userId, userId))
+      .orderBy(desc(likes.createdAt));
+
+    return likedPosts;
+  }
 }
 
 export const interactionServices = new InteractionServices();
