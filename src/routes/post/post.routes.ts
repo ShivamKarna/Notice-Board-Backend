@@ -5,7 +5,7 @@ import { validate } from '../../middlewares/validation.middleware';
 import { uploadMultiple,handleMulterError,uploadSingle } from '../../middlewares/upload.middleware';
 import { z } from 'zod';
 import { createPostSchema,updatePostSchema,rejectPostSchema } from '../../utils/PostSchemas/post.validation';
-
+import { ensureGuestSession } from '../../middlewares/guest.middleware';
 const postRouter = Router();
 
 // protected routes
@@ -35,7 +35,7 @@ postRouter.patch(
 );
 
 postRouter.delete('/:postId', authenticate, postController.deletePost);
-
+postRouter.get('/:postId', ensureGuestSession,  postController.getPostById);
 postRouter.get('/:postId', postController.getPostById);
 
 postRouter.get('/user/:userId', postController.getUserPosts);

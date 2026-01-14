@@ -5,7 +5,7 @@ import { groupRouter } from "./group/group.routes";
 import { postRouter } from "./post/post.routes";
 import { interactionsRouter } from "./interaction/comments_likes.routes";
 import { notificationRouter } from "./notifications/notification.route";
-
+import { guestRouter } from "./guest/guest.route";
 const router = Router();
 
 // prefix :   /api/v1/
@@ -15,6 +15,7 @@ router.use("/group", groupRouter);
 router.use("/posts",postRouter);
 router.use("/interactions",interactionsRouter);
 router.use("/notifications",notificationRouter);
+router.use("/guest",guestRouter);
 router.use("/cron", cronRouter);
 
 router.get("/health", (req, res) => {
