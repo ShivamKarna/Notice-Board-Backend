@@ -22,7 +22,7 @@ import { AppAssert } from "../utils/AppAssert";
 import { STATUS_CODE } from "../types/httpStatus";
 import { ApiError } from "../utils/ApiError";
 import { and, eq, desc } from "drizzle-orm";
-
+import { CacheInvalidation } from "../utils/cache-invalidation";
 export class PostServices {
   private readonly CACHE_TTL_SHORT = parseInt(
     process.env.CACHE_TTL_SHORT || "300"
@@ -268,6 +268,8 @@ export class PostServices {
       `post:user:${post.authorId}*`,
     ]);
 
+    await CacheInvalidation.invalidatePost(postId, post.groupId);
+
     return { success: true, message: "Post approval Successful" };
   }
 
@@ -389,6 +391,8 @@ export class PostServices {
       `post:user:${userId}*`,
     ]);
 
+    await CacheInvalidation.invalidatePost(postId, post.groupId);
+
     return updatedPost;
   }
 
@@ -436,6 +440,8 @@ export class PostServices {
       `post:group:${post.groupId}*`,
       `post:user:${userId}*`,
     ]);
+
+    await CacheInvalidation.invalidatePost(postId, post.groupId);
 
     return { success: true, messsage: "Post deleted successfully" };
   }

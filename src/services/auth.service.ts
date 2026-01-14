@@ -6,12 +6,13 @@ import { STATUS_CODE } from "../types/httpStatus";
 import type { loginInput, RegisterInput } from "../utils/auth/validations";
 import { comparePassword, hashPassword } from "../utils/auth/password";
 import { AppAssert } from "../utils/AppAssert";
-import { createUserSession } from "../utils/auth/session";
+import { convertGuestToUserSession, createUserSession } from "../utils/auth/session";
 import { createRefreshToken, signAccessToken } from "../utils/auth/jwt";
 import { revokeAllUserTokens, revokeToken } from "../utils/auth/refreshToken";
+import { guestService } from "./guest.service";
 
 export class AuthService {
-  async registerUser(input: RegisterInput) {
+  async registerUser(input: RegisterInput,guestSessionToken?:string) {
     //check if existing
     const existingUser = await db
       .select()
@@ -70,6 +71,10 @@ export class AuthService {
 
     const refreshToken = await createRefreshToken(newUser.id, input.userAgent);
 
+    if(guestSessionToken){
+      await convertGuestToUserSession(guestSessionToken, newUser.id);
+    }
+
     // return response
     return {
       user: newUser,
@@ -78,7 +83,7 @@ export class AuthService {
       sessionToken: session.sessionToken,
     };
   }
-  async loginUser(input: loginInput) {
+  async loginUser(input: loginInput, guestSessionToken?:string) {
     // find user // check password, // update last login , //create session // generate tokens //return response
     const [user] = await db
       .select()
@@ -125,6 +130,10 @@ export class AuthService {
 
     const refreshToken = await createRefreshToken(user.id, input.userAgent);
 
+
+    if(guestSessionToken){
+      await convertGuestToUserSession(guestSessionToken, user.id);
+    }
     return {
       user: {
         id: user.id,

@@ -12,14 +12,15 @@ import {
 } from "../utils/auth/jwt";
 import { deleteSession, getSessionByToken } from "../utils/auth/session";
 import { ApiError } from "../utils/ApiError";
-import { refreshTokens } from "../db/postgres/schemas";
 import { revokeAllUserTokens } from "../utils/auth/refreshToken";
 export class AuthController {
   async registerUser(req: Request, res: Response, next: NextFunction) {
     try {
+
+      const guestSessionToken = req.cookies.session_token;
       // call service
       const userAgent = req.headers["user-agent"];
-      const result = await authService.registerUser({ ...req.body, userAgent });
+      const result = await authService.registerUser({ ...req.body, userAgent },guestSessionToken);
 
       // set cookies
       res.cookie("session_token", result.sessionToken, {
@@ -50,8 +51,10 @@ export class AuthController {
   }
   async loginUser(req: Request, res: Response, next: NextFunction) {
     try {
+      const guestSessionToken = req.cookies.session_token;
+
       const userAgent = req.headers["user-agent"];
-      const result = await authService.loginUser({ ...req.body, userAgent });
+      const result = await authService.loginUser({ ...req.body, userAgent }, guestSessionToken);
 
       res.cookie("session_token", result.sessionToken, {
         httpOnly: true,
