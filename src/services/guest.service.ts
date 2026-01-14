@@ -362,7 +362,8 @@ export class GuestService {
 
     const cacheKey = `public-feed:page-${page}:limit-${limit}`;
 
-    const cached = await cacheService.get<any>("guest", cacheKey);
+    // added proper type for cached item get , that is PublicPostItem 
+    const cached = await cacheService.get<PublicPostItem>("guest", cacheKey);
     if (cached) {
       return cached;
     }
@@ -460,6 +461,150 @@ export class GuestService {
 
     return result;
   }
+
+  async trackGuestActivity(sessionToken : string, action : string, entityId?: string){
+    const key = `guest-activity:${sessionToken}`;
+    const activity = {
+      action,
+      entityId,
+      timestamp: new Date().toISOString(),
+    };
+
+    await cacheService.set('guest-activity', sessionToken, activity, 86400);
+  }
+
+  async getTrendingGroups(limit : number = 10){
+    const key = `trending-groups:${limit}`
+    const cached = await cacheService.get<PublicGroupItem>('guest' ,key);
+
+    if(cached){
+      return cached;
+    }
+    
+    const trendingGroups = await db
+      .select({
+        group: groups,
+        owner: {
+          id: usersTable.id,
+          username: usersTable.username,
+        },
+        memberCount: sql<number>`(
+          SELECT COUNT(*)::int 
+          FROM group_members 
+          WHERE group_members.group_id = ${groups.id} 
+          AND group_members.is_active = true
+        )`,
+        recentPostCount: sql<number>`(
+          SELECT COUNT(*)::int 
+          FROM posts 
+          WHERE posts.group_id = ${groups.id} 
+          AND posts.status = 'published'
+          AND posts.published_at > NOW() - INTERVAL '7 days'
+        )`,
+      })
+      .from(groups)
+      .innerJoin(usersTable, eq(groups.ownerId, usersTable.id))
+      .orderBy(
+        desc(sql`(
+          SELECT COUNT(*) 
+          FROM posts 
+          WHERE posts.group_id = ${groups.id} 
+          AND posts.status = 'published'
+          AND posts.published_at > NOW() - INTERVAL '7 days'
+        )`)
+      )
+      .limit(limit);
+
+    await cacheService.set('guest', key, trendingGroups, this.CACHE_TTL_LONG);
+    return trendingGroups;
+  }
+
+  async getTrendingPosts(limit: number = 10) {
+  limit = Math.min(limit, 50); 
+  const cacheKey = `trending-posts:${limit}`;
+
+  const cached = await cacheService.get<any>('guest', cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  const trendingPosts = await db
+    .select({
+      post: posts,
+      author: {
+        id: usersTable.id,
+        username: usersTable.username,
+      },
+      group: {
+        id: groups.id,
+        name: groups.name,
+      },
+      commentCount: sql<number>`(
+        SELECT COUNT(*)::int 
+        FROM comments 
+        WHERE comments.post_id = ${posts.id}
+      )`,
+      likeCount: sql<number>`(
+        SELECT COUNT(*)::int 
+        FROM likes 
+        WHERE likes.post_id = ${posts.id}
+      )`,
+      engagementScore: sql<number>`(
+        (SELECT COUNT(*) FROM comments WHERE comments.post_id = ${posts.id}) * 2 +
+        (SELECT COUNT(*) FROM likes WHERE likes.post_id = ${posts.id})
+      )::int`,
+    })
+    .from(posts)
+    .innerJoin(usersTable, eq(posts.authorId, usersTable.id))
+    .innerJoin(groups, eq(posts.groupId, groups.id))
+    .where(
+      and(
+        eq(posts.status, 'published'),
+        eq(posts.visibility, 'public'),
+        sql`${posts.publishedAt} > NOW() - INTERVAL '7 days'`
+      )
+    )
+    .orderBy(
+      desc(sql`(
+        (SELECT COUNT(*) FROM comments WHERE comments.post_id = ${posts.id}) * 2 +
+        (SELECT COUNT(*) FROM likes WHERE likes.post_id = ${posts.id})
+      )`)
+    )
+    .limit(limit);
+
+  if (trendingPosts.length === 0) {
+    return [];
+  }
+
+  // 3️⃣ Fetch ALL media in one query, to save from the 1 + N query problem
+  const postIds = trendingPosts.map(p => p.post.id);
+
+  const allMedia = await db
+    .select()
+    .from(media)
+    .where(inArray(media.postId, postIds))
+    .orderBy(media.postId, media.order);
+
+  const mediaByPostId = new Map<string, typeof allMedia>();
+
+  for (const m of allMedia) {
+    if (!mediaByPostId.has(m.postId)) {
+      mediaByPostId.set(m.postId, []);
+    }
+    mediaByPostId.get(m.postId)!.push(m);
+  }
+
+  // 5️⃣ Attach media to posts
+  const postsWithMedia = trendingPosts.map(item => ({
+    ...item,
+    media: mediaByPostId.get(item.post.id) || [],
+  }));
+
+  await cacheService.set('guest', cacheKey, postsWithMedia, this.CACHE_TTL_MEDIUM);
+
+  return postsWithMedia;
+}
+
 
   // this is the main closing bracket
 }
