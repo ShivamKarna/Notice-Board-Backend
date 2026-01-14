@@ -1,5 +1,4 @@
 import type { NextFunction, Request, Response } from "express";
-import { getSessionByToken } from "../utils/auth/session";
 import { verifyAccessToken, type AccesstokenPayload } from "../utils/auth/jwt";
 import { AppAssert } from "../utils/AppAssert";
 import { STATUS_CODE } from "../types/httpStatus";
@@ -7,6 +6,8 @@ import { ApiError } from "../utils/ApiError";
 import { db } from "../db/postgres/db.postgres";
 import { usersTable } from "../db/postgres/schemas";
 import { and, eq } from "drizzle-orm";
+import {getSessionByToken,convertGuestToUserSession} from "../utils/auth/session.ts";
+import { postRouter } from "../routes/post/post.routes";
 
 const authenticate = async (
   req: Request,
@@ -42,6 +43,16 @@ const authenticate = async (
 
     // attach user to Request
     req.user = payload;
+
+    // covert guest to authenticated user
+    const sessiontoken = req.cookies.sesssion_token;
+    if(sessiontoken){
+      const session = await getSessionByToken(sessiontoken);
+
+      if(session && session.isGuest){
+        await convertGuestToUserSession(sessiontoken, payload.userId);
+      }
+    }
     next();
   } catch (error) {
     next(error);
