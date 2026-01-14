@@ -1,41 +1,37 @@
-import { userSessions, usersTable } from "../../db/postgres/schemas";
+import { userSessions } from "../../db/postgres/schemas"; 
 import { db } from "../../db/postgres/db.postgres";
 import { eq } from "drizzle-orm";
-import { randomBytes } from "crypto";
+import {randomBytes} from 'crypto'
 
-export function generateSessionToken(): string {
-  return randomBytes(64).toString("hex");
-}
 
-export async function createGuestSession() {
+export function generateSessionToken () : string {
+  return randomBytes(64).toString('hex');
+} 
+
+export async function createGuestSession(){
   const token = generateSessionToken();
   const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
-  const [session] = await db
-    .insert(userSessions)
-    .values({
-      sessionToken: token,
-      isGuest: true,
-      userId: null,
-      expiresAt,
-    })
-    .returning();
+  expiresAt.setDate(expiresAt.getDate()+ 7)// 7 days
+  const [session] = await db.insert(userSessions).values({
+    sessionToken: token,
+    isGuest: true,
+    userId : null,
+    expiresAt,
+  }).returning()
   return session;
 }
 
-export async function createUserSession(userId: string) {
+
+export async function createUserSession(userId : string){
   const token = generateSessionToken();
   const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
-  const [session] = await db
-    .insert(userSessions)
-    .values({
-      sessionToken: token,
-      isGuest: true,
-      userId,
-      expiresAt,
-    })
-    .returning();
+  expiresAt.setDate(expiresAt.getDate()+ 7)// 7 days
+  const [session] = await db.insert(userSessions).values({
+    sessionToken: token,
+    isGuest: false,
+    userId ,
+    expiresAt,
+  }).returning()
   return session;
 }
 
@@ -62,19 +58,14 @@ export async function getSessionByToken(token: string) {
 
   return session;
 }
-export async function convertGuestToUserSession(
-  sessionToken: string,
-  userId: string
-) {
-  await db
-    .update(userSessions)
-    .set({
-      userId,
-      isGuest: false,
-    })
-    .where(eq(userSessions.sessionToken, sessionToken));
+export async function convertGuestToUserSession (sessionToken : string, userId : string){
+  await db.update(userSessions).set({
+    userId ,
+    isGuest : false,
+  }).where(eq(userSessions.sessionToken, sessionToken))
 }
 
-export async function deleteSession(token: string) {
+export async function deleteSession (token : string ){
   await db.delete(userSessions).where(eq(userSessions.sessionToken, token));
 }
+
