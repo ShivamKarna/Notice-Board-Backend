@@ -1,19 +1,57 @@
-import { Router } from 'express';
-import { notificationController } from '../../controllers/notification.controller';
-import { authenticate } from '../../middlewares/auth.middleware';
+import { Router } from "express";
+import { notificationController } from "../../controllers/notification.controller";
+import { authenticate } from "../../middlewares/auth.middleware";
 
 const notificationRouter = Router();
 
-notificationRouter.get('/', authenticate, notificationController.getUserNotifications);
+notificationRouter.get(
+  "/",
+  authenticate,
+  notificationController.getUserNotifications,
+);
 
-notificationRouter.get('/unread/count', authenticate, notificationController.getUnreadCount);
+notificationRouter.get(
+  "/unread/count",
+  authenticate,
+  notificationController.getUnreadCount,
+);
 
-notificationRouter.patch('/:notificationId/read', authenticate, notificationController.markAsRead);
+// Get notification preferences
+notificationRouter.get(
+  "/preferences",
+  authenticate,
+  notificationController.getPreferences,
+);
 
-notificationRouter.patch('/read-all', authenticate, notificationController.markAllAsRead);
+notificationRouter.patch(
+  "/preferences",
+  authenticate,
+  validate(z.object({ body: updateNotificationPreferencesSchema })),
+  notificationController.updatePreferences,
+);
 
-notificationRouter.delete('/:notificationId', authenticate, notificationController.deleteNotification);
+notificationRouter.patch(
+  "/:notificationId/read",
+  authenticate,
+  notificationController.markAsRead,
+);
 
-notificationRouter.delete('/read/all', authenticate, notificationController.deleteAllRead);
+notificationRouter.patch(
+  "/read-all",
+  authenticate,
+  notificationController.markAllAsRead,
+);
 
-export {notificationRouter};
+notificationRouter.delete(
+  "/:notificationId",
+  authenticate,
+  notificationController.deleteNotification,
+);
+
+notificationRouter.delete(
+  "/read/all",
+  authenticate,
+  notificationController.deleteAllRead,
+);
+
+export { notificationRouter };
