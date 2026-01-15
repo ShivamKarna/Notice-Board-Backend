@@ -1,6 +1,9 @@
 import { Router } from "express";
 import { notificationController } from "../../controllers/notification.controller";
 import { authenticate } from "../../middlewares/auth.middleware";
+import { validate } from "../../middlewares/validation.middleware";
+import { z } from "zod";
+import { updateNotificationPreferencesSchema } from "../../utils/notificationPreferencesSchemas/notificationPreferences.validation";
 
 const notificationRouter = Router();
 

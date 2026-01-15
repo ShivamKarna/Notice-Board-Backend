@@ -5,6 +5,7 @@ import { AsyncHandler } from "../utils/AsyncHandler";
 import { STATUS_CODE } from "../types/httpStatus.ts";
 import { ApiResponse } from "../utils/ApiResponse";
 import { AppAssert } from "../utils/AppAssert.ts";
+import type { RequestListener } from "http";
 
 export class NotificationController {
   getUserNotifications = AsyncHandler(
@@ -142,6 +143,50 @@ export class NotificationController {
             STATUS_CODE.SUCCESS,
             {},
             "All Read notificaitions delted",
+          ),
+        );
+    },
+  );
+
+  getPreferences = AsyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      if (!req.user) {
+        throw new ApiError(STATUS_CODE.UNAUTHORIZED, "Authentication required");
+      }
+
+      const result = await notificationService.getUserPreferences(
+        req.user.userId,
+      );
+
+      res
+        .status(STATUS_CODE.SUCCESS)
+        .json(
+          new ApiResponse(
+            STATUS_CODE.SUCCESS,
+            result,
+            "User Preferences Returned",
+          ),
+        );
+    },
+  );
+  updatePreferences = AsyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      if (!req.user) {
+        throw new ApiError(STATUS_CODE.UNAUTHORIZED, "Authentication required");
+      }
+
+      const result = await notificationService.updateUserPreferences(
+        req.user.userId,
+        req.body,
+      );
+
+      res
+        .status(STATUS_CODE.SUCCESS)
+        .json(
+          new ApiResponse(
+            STATUS_CODE.SUCCESS,
+            result,
+            "User Preferences Updated",
           ),
         );
     },

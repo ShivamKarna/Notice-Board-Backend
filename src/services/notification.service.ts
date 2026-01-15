@@ -1,6 +1,10 @@
 import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "../db/postgres/db.postgres";
-import { notifications, userSessions } from "../db/postgres/schemas";
+import {
+  notificationPreferences,
+  notifications,
+  userSessions,
+} from "../db/postgres/schemas";
 import { cacheService } from "./redis_cache.service";
 import { UpdateNotificationPreferencesSchema } from "../utils/notificationPreferencesSchemas/notificationPreferences.validation.ts";
 interface createNotificationInput {
@@ -50,7 +54,7 @@ export class NotificationService {
     const [updated] = await db
       .update(notificationPreferences)
       .set({
-        ...preferences,
+        ...input,
         updatedAt: new Date(),
       })
       .where(eq(notificationPreferences.userId, userId))
