@@ -10,7 +10,6 @@ import {
 import { eq, and, or, desc, asc, sql, ilike } from "drizzle-orm";
 import { cacheService, CacheService } from "./redis_cache.service.ts";
 import { ApiError } from "../utils/ApiError.ts";
-import { UploadStream } from "cloudinary";
 import { STATUS_CODE } from "../types/httpStatus.ts";
 
 export class SearchService {
@@ -78,7 +77,7 @@ export class SearchService {
         )
       );
 
-    const totalCount = totalCountNumber.length || 0;
+    const totalCount = totalCountNumber[0]?.count ?? 0;
 
     const result = {
       groups: results,
@@ -247,11 +246,11 @@ export class SearchService {
 
     // total count
     const totalCountNumber = await db
-      .select({ count: sql<number>`coutn(*)::int` })
+      .select({ count: sql<number>`count(*)::int` })
       .from(posts)
       .where(and(...conditions));
 
-    const totalCount = totalCountNumber.length || 0;
+    const totalCount = totalCountNumber[0]?.count ?? 0;
 
     return {
       posts: postsWithRelations,
@@ -260,6 +259,215 @@ export class SearchService {
         limit,
         total: totalCount,
         totalPages: Math.ceil(totalCount / limit),
+      },
+    };
+  }
+
+  async searchUsers(query: string, page: number = 1, limit: number = 20) {
+    if (!query || query.trim().length < 2) {
+      throw new ApiError(
+        STATUS_CODE.BAD_REQUEST,
+        "Search query must be at least 2 characters"
+      );
+    }
+
+    const offset = (page - 1) * limit;
+    const searchTerm = `%${query.trim()}%`;
+
+    type UserSearchResult = {
+      users: Array<{
+        id: string;
+        username: string;
+        email: string;
+        createdAt: Date;
+      }>;
+      pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+      };
+    };
+
+    const cacheKey = `search-users:${query}:${page}:${limit}`;
+    const cached = await cacheService.get<UserSearchResult>("search", cacheKey);
+
+    if (cached) {
+      return cached;
+    }
+    const results = await db
+      .select({
+        id: usersTable.id,
+        username: usersTable.username,
+        email: usersTable.email,
+        createdAt: usersTable.createdAt,
+      })
+      .from(usersTable)
+      .where(ilike(usersTable.username, searchTerm))
+      .orderBy(asc(usersTable.username))
+      .limit(limit)
+      .offset(offset);
+
+    const totalCountNumber = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(usersTable)
+      .where(ilike(usersTable.username, searchTerm));
+
+    const totalCount = totalCountNumber[0]?.count ?? 0;
+
+    const result = {
+      users: results,
+      pagination: {
+        page,
+        limit,
+        total: totalCount,
+        totalPages: Math.ceil(totalCount / limit),
+      },
+    };
+    await cacheService.set("search", cacheKey, result, this.CACHE_TTL_SHORT);
+
+    return result;
+  }
+  async getFilteredPosts(
+    filters: {
+      groupId?: string;
+      authorId?: string;
+      status?: string;
+      visibility?: string;
+      startDate?: Date;
+      endDate?: Date;
+    },
+    sort: "newest" | "oldest" | "most_liked" = "newest",
+    page: number = 1,
+    limit: number = 20
+  ) {
+    const offset = (page - 1) * limit;
+    const conditions = [];
+
+    if (filters.groupId) {
+      conditions.push(eq(posts.groupId, filters.groupId));
+    }
+
+    if (filters.authorId) {
+      conditions.push(eq(posts.authorId, filters.authorId));
+    }
+
+    conditions.push(eq(posts.status, filters.status ?? "published"));
+
+    if (filters.visibility) {
+      conditions.push(eq(posts.visibility, filters.visibility));
+    }
+
+    if (filters.startDate) {
+      conditions.push(sql`${posts.publishedAt} >= ${filters.startDate}`);
+    }
+
+    if (filters.endDate) {
+      conditions.push(sql`${posts.publishedAt} <= ${filters.endDate}`);
+    }
+
+    let orderBy;
+    switch (sort) {
+      case "oldest":
+        orderBy = asc(posts.publishedAt);
+        break;
+      case "most_liked":
+        // Will sort AFTER joining like counts
+        orderBy = desc(sql`like_count`);
+        break;
+      default:
+        orderBy = desc(posts.publishedAt);
+    }
+
+    const results = await db
+      .select({
+        post: posts,
+        author: {
+          id: usersTable.id,
+          username: usersTable.username,
+        },
+        group: {
+          id: groups.id,
+          name: groups.name,
+        },
+      })
+      .from(posts)
+      .innerJoin(usersTable, eq(posts.authorId, usersTable.id))
+      .innerJoin(groups, eq(posts.groupId, groups.id))
+      .where(conditions.length ? and(...conditions) : undefined)
+      .orderBy(orderBy)
+      .limit(limit)
+      .offset(offset);
+
+    if (results.length === 0) {
+      return {
+        posts: [],
+        pagination: {
+          page,
+          limit,
+          total: 0,
+          totalPages: 0,
+        },
+      };
+    }
+
+    const postIds = results.map((r) => r.post.id);
+    const like = await db
+      .select({
+        postId: likes.postId,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(likes)
+      .where(sql`post_id IN (${postIds})`)
+      .groupBy(likes.postId);
+
+    const likeMap = Object.fromEntries(like.map((l) => [l.postId, l.count]));
+    const comment = await db
+      .select({
+        postId: comments.postId,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(comments)
+      .where(sql`post_id IN (${postIds})`)
+      .groupBy(comments.postId);
+
+    const commentMap = Object.fromEntries(
+      comment.map((c) => [c.postId, c.count])
+    );
+
+    const mediaRows = await db
+      .select()
+      .from(media)
+      .where(sql`post_id IN (${postIds})`)
+      .orderBy(media.order);
+
+    const mediaMap = mediaRows.reduce((acc, m) => {
+      if (!acc[m.postId]) acc[m.postId] = [];
+      acc[m.postId]!.push(m);
+      return acc;
+    }, {} as Record<string, typeof mediaRows>);
+
+    const postsWithRelations = results.map((r) => ({
+      ...r,
+      likeCount: likeMap[r.post.id] ?? 0,
+      commentCount: commentMap[r.post.id] ?? 0,
+      media: mediaMap[r.post.id] ?? [],
+    }));
+
+    const totalCountResult = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(posts)
+      .where(conditions.length ? and(...conditions) : undefined);
+
+    const total = totalCountResult[0]?.count ?? 0;
+
+    return {
+      posts: postsWithRelations,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
       },
     };
   }
