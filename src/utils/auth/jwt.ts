@@ -57,7 +57,7 @@ export async function createRefreshToken(
   userAgent?: string
 ): Promise<{ token: string; tokenId: string }> {
   const expiresAt = new Date(
-    Date.now() + ms(JWT_REFRESH_SECRET_EXPIRES_IN as any)
+    Date.now() + ms(JWT_REFRESH_SECRET_EXPIRES_IN as string)
   );
 
   // Create token record first ,without JWT token yet

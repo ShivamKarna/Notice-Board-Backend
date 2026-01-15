@@ -449,7 +449,18 @@ export class PostServices {
   async getPostById(postId: string, userId?: string) {
     // Try to get from cache
     const cacheKey = userId ? `${postId}:${userId}` : postId;
-    const cached = await cacheService.get<any>("post", cacheKey);
+
+    type PostWithDetails = {
+      post: typeof posts.$inferSelect;
+      author: { id: string; username: string | null };
+      group: { id: string; name: string };
+      media: Array<typeof media.$inferSelect>;
+      hasLiked?: boolean;
+      likeCount: number;
+      commentCount: number;
+    };
+
+    const cached = await cacheService.get<PostWithDetails>("post", cacheKey);
 
     if (cached) {
       return cached;
@@ -534,7 +545,17 @@ export class PostServices {
     const cacheKey = `group:${groupId}:${status || "published"}:${
       userId || "guest"
     }`;
-    const cached = await cacheService.get<any>("post", cacheKey);
+
+    type GroupPost = {
+      post: typeof posts.$inferSelect;
+      author: { id: string; username: string | null };
+      media: Array<typeof media.$inferSelect>;
+      hasLiked?: boolean;
+      likeCount: number;
+      commentCount: number;
+    };
+
+    const cached = await cacheService.get<GroupPost[]>("post", cacheKey);
 
     if (cached) {
       return cached;
@@ -592,7 +613,15 @@ export class PostServices {
 
     // Try to get from cache
     const cacheKey = `pending:${groupId}:${userId}`;
-    const cached = await cacheService.get<any>("post", cacheKey);
+
+    type PendingPost = {
+      post: typeof posts.$inferSelect;
+      author: { id: string; username: string | null };
+      approval: typeof postApprovals.$inferSelect | null;
+      media: Array<typeof media.$inferSelect>;
+    };
+
+    const cached = await cacheService.get<PendingPost[]>("post", cacheKey);
 
     if (cached) {
       return cached;
@@ -647,7 +676,17 @@ export class PostServices {
   async getUserPosts(userId: string, requesterId?: string) {
     // Try to get from cache
     const cacheKey = `user:${userId}:${requesterId || "guest"}`;
-    const cached = await cacheService.get<any>("post", cacheKey);
+
+    type UserPost = {
+      post: typeof posts.$inferSelect;
+      group: { id: string; name: string };
+      media: Array<typeof media.$inferSelect>;
+      hasLiked?: boolean;
+      likeCount: number;
+      commentCount: number;
+    };
+
+    const cached = await cacheService.get<UserPost[]>("post", cacheKey);
 
     if (cached) {
       return cached;

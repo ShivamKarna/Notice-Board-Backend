@@ -1,8 +1,7 @@
 import multer from "multer";
 import { storage } from "../config/cloudinary.config";
 import { ApiError } from "../utils/ApiError";
-import type {Request} from 'express';
-
+import type { Request } from "express";
 
 // FIle filter to accept only images
 
@@ -12,10 +11,10 @@ const fileFilter = (
   cb: multer.FileFilterCallback
 ) => {
   // Accept images only
-  if (file.mimetype.startsWith('image/')) {
+  if (file.mimetype.startsWith("image/")) {
     cb(null, true);
   } else {
-    cb(new ApiError(400, 'Only image files are allowed!'));
+    cb(new ApiError(400, "Only image files are allowed!"));
   }
 };
 
@@ -28,23 +27,29 @@ const upload = multer({
   },
 });
 
-
-export const uploadSingle = upload.single('image');
-export const uploadMultiple = upload.array('images', 5); // Max 5 images
+export const uploadSingle = upload.single("image");
+export const uploadMultiple = upload.array("images", 5); // Max 5 images
 
 // Error handler for multer
-export const handleMulterError = (err: any, req: Request, res: any, next: any) => {
+import type { Response, NextFunction } from "express";
+
+export const handleMulterError = (
+  err: unknown,
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   if (err instanceof multer.MulterError) {
-    if (err.code === 'LIMIT_FILE_SIZE') {
+    if (err.code === "LIMIT_FILE_SIZE") {
       return res.status(400).json({
         success: false,
-        error: 'File size is too large. Maximum size is 10MB.',
+        error: "File size is too large. Maximum size is 10MB.",
       });
     }
-    if (err.code === 'LIMIT_FILE_COUNT') {
+    if (err.code === "LIMIT_FILE_COUNT") {
       return res.status(400).json({
         success: false,
-        error: 'Too many files. Maximum is 5 images.',
+        error: "Too many files. Maximum is 5 images.",
       });
     }
     return res.status(400).json({
@@ -55,5 +60,4 @@ export const handleMulterError = (err: any, req: Request, res: any, next: any) =
   next(err);
 };
 
-
-export {upload};
+export { upload };

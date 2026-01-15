@@ -5,7 +5,6 @@ import { AppAssert } from "../utils/AppAssert";
 import { AsyncHandler } from "../utils/AsyncHandler";
 import { STATUS_CODE } from "../types/httpStatus";
 import { ApiResponse } from "../utils/ApiResponse";
-import { AwsPgDialect } from "drizzle-orm/aws-data-api/pg";
 
 export class InteractionController {
   // Comments

@@ -1,9 +1,7 @@
 import redis from "../config/redis.config.ts";
 
-
-
 export class CacheService {
-  private defaultTTL = parseInt(process.env.CACHE_TTL_MEDIUM || '1800');
+  private defaultTTL = parseInt(process.env.CACHE_TTL_MEDIUM || "1800");
 
   private generateKey(prefix: string, identifier: string): string {
     return `noticeboard:${prefix}:${identifier}`;
@@ -13,14 +11,14 @@ export class CacheService {
     try {
       const key = this.generateKey(prefix, identifier);
       const data = await redis.get(key);
-      
+
       if (!data) {
         return null;
       }
 
       return JSON.parse(data) as T;
     } catch (error) {
-      console.error('Cache get error:', error);
+      console.error("Cache get error:", error);
       return null;
     }
   }
@@ -28,14 +26,14 @@ export class CacheService {
   async set(
     prefix: string,
     identifier: string,
-    data: any,
+    data: unknown,
     ttl: number = this.defaultTTL
   ): Promise<void> {
     try {
       const key = this.generateKey(prefix, identifier);
       await redis.setex(key, ttl, JSON.stringify(data));
     } catch (error) {
-      console.error('Cache set error:', error);
+      console.error("Cache set error:", error);
     }
   }
 
@@ -44,7 +42,7 @@ export class CacheService {
       const key = this.generateKey(prefix, identifier);
       await redis.del(key);
     } catch (error) {
-      console.error('Cache delete error:', error);
+      console.error("Cache delete error:", error);
     }
   }
   async deletePattern(pattern: string): Promise<void> {
@@ -54,7 +52,7 @@ export class CacheService {
         await redis.del(...keys);
       }
     } catch (error) {
-      console.error('Cache delete pattern error:', error);
+      console.error("Cache delete pattern error:", error);
     }
   }
 
@@ -64,56 +62,76 @@ export class CacheService {
       const result = await redis.exists(key);
       return result === 1;
     } catch (error) {
-      console.error('Cache exists error:', error);
+      console.error("Cache exists error:", error);
       return false;
     }
   }
 
-  async increment(prefix: string, identifier: string, amount: number = 1): Promise<number> {
+  async increment(
+    prefix: string,
+    identifier: string,
+    amount: number = 1
+  ): Promise<number> {
     try {
       const key = this.generateKey(prefix, identifier);
       return await redis.incrby(key, amount);
     } catch (error) {
-      console.error('Cache increment error:', error);
+      console.error("Cache increment error:", error);
       return 0;
     }
   }
 
-  async decrement(prefix: string, identifier: string, amount: number = 1): Promise<number> {
+  async decrement(
+    prefix: string,
+    identifier: string,
+    amount: number = 1
+  ): Promise<number> {
     try {
       const key = this.generateKey(prefix, identifier);
       return await redis.decrby(key, amount);
     } catch (error) {
-      console.error('Cache decrement error:', error);
+      console.error("Cache decrement error:", error);
       return 0;
     }
   }
 
-  async addToSet(prefix: string, identifier: string, member: string): Promise<void> {
+  async addToSet(
+    prefix: string,
+    identifier: string,
+    member: string
+  ): Promise<void> {
     try {
       const key = this.generateKey(prefix, identifier);
       await redis.sadd(key, member);
     } catch (error) {
-      console.error('Cache add to set error:', error);
+      console.error("Cache add to set error:", error);
     }
   }
 
-  async removeFromSet(prefix: string, identifier: string, member: string): Promise<void> {
+  async removeFromSet(
+    prefix: string,
+    identifier: string,
+    member: string
+  ): Promise<void> {
     try {
       const key = this.generateKey(prefix, identifier);
       await redis.srem(key, member);
     } catch (error) {
-      console.error('Cache remove from set error:', error);
+      console.error("Cache remove from set error:", error);
     }
   }
 
-  async isMemberOfSet(prefix: string, identifier: string, member: string): Promise<boolean> {
+  async isMemberOfSet(
+    prefix: string,
+    identifier: string,
+    member: string
+  ): Promise<boolean> {
     try {
       const key = this.generateKey(prefix, identifier);
       const result = await redis.sismember(key, member);
       return result === 1;
     } catch (error) {
-      console.error('Cache is member of set error:', error);
+      console.error("Cache is member of set error:", error);
       return false;
     }
   }
@@ -123,7 +141,7 @@ export class CacheService {
       const key = this.generateKey(prefix, identifier);
       return await redis.smembers(key);
     } catch (error) {
-      console.error('Cache get set members error:', error);
+      console.error("Cache get set members error:", error);
       return [];
     }
   }
@@ -133,7 +151,7 @@ export class CacheService {
       const key = this.generateKey(prefix, identifier);
       return await redis.scard(key);
     } catch (error) {
-      console.error('Cache get set size error:', error);
+      console.error("Cache get set size error:", error);
       return 0;
     }
   }
@@ -146,7 +164,7 @@ export class CacheService {
   ): Promise<T> {
     // try to get from cache
     const cached = await this.get<T>(prefix, identifier);
-    
+
     if (cached !== null) {
       return cached;
     }
@@ -167,23 +185,20 @@ export class CacheService {
         await this.deletePattern(pattern);
       }
     } catch (error) {
-      console.error('Cache invalidate related error:', error);
+      console.error("Cache invalidate related error:", error);
     }
   }
   // clear all cache
   async clearAll(): Promise<void> {
     try {
-      const keys = await redis.keys('noticeboard:*');
+      const keys = await redis.keys("noticeboard:*");
       if (keys.length > 0) {
         await redis.del(...keys);
       }
     } catch (error) {
-      console.error('Cache clear all error:', error);
+      console.error("Cache clear all error:", error);
     }
   }
-
-
-
 }
 
 export const cacheService = new CacheService();
