@@ -33,7 +33,7 @@ export class SearchController {
       res
         .status(STATUS_CODE.SUCCESS)
         .json(new ApiResponse(STATUS_CODE.SUCCESS, result));
-    }
+    },
   );
   searchPosts = AsyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
@@ -67,13 +67,13 @@ export class SearchController {
         filters,
         sortOption as SortOption,
         page,
-        limit
+        limit,
       );
 
       res
         .status(STATUS_CODE.SUCCESS)
         .json(new ApiResponse(STATUS_CODE.SUCCESS, result));
-    }
+    },
   );
   searchUsers = AsyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
@@ -90,7 +90,7 @@ export class SearchController {
       res
         .status(STATUS_CODE.SUCCESS)
         .json(new ApiResponse(STATUS_CODE.SUCCESS, result));
-    }
+    },
   );
   filterPosts = AsyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
@@ -120,14 +120,14 @@ export class SearchController {
         filters,
         sortOption as SortOption,
         page,
-        limit
+        limit,
       );
 
       res
         .status(STATUS_CODE.SUCCESS)
         .json(new ApiResponse(STATUS_CODE.SUCCESS, result));
-    }
+    },
   );
 }
 
-export const sesarchController = new SearchController();
+export const searchController = new SearchController();

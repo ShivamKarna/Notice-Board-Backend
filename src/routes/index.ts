@@ -6,16 +6,18 @@ import { postRouter } from "./post/post.routes";
 import { interactionsRouter } from "./interaction/comments_likes.routes";
 import { notificationRouter } from "./notifications/notification.route";
 import { guestRouter } from "./guest/guest.route";
+import { searchRouter } from "./search/search.routes";
 const router = Router();
 
-// prefix :   /api/v1/
+// prefix :   localhost/api
 
 router.use("/auth", authRouter);
 router.use("/group", groupRouter);
-router.use("/posts",postRouter);
-router.use("/interactions",interactionsRouter);
-router.use("/notifications",notificationRouter);
-router.use("/guest",guestRouter);
+router.use("/posts", postRouter);
+router.use("/interactions", interactionsRouter);
+router.use("/notifications", notificationRouter);
+router.use("/guest", guestRouter);
+router.use("/search", searchRouter);
 router.use("/cron", cronRouter);
 
 router.get("/health", (req, res) => {
