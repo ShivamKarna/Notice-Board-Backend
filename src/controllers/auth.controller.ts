@@ -16,11 +16,28 @@ import { revokeAllUserTokens } from "../utils/auth/refreshToken";
 export class AuthController {
   async registerUser(req: Request, res: Response, next: NextFunction) {
     try {
-
       const guestSessionToken = req.cookies.session_token;
       // call service
       const userAgent = req.headers["user-agent"];
-      const result = await authService.registerUser({ ...req.body, userAgent },guestSessionToken);
+
+      // Handle uploaded images
+      const files = req.files as {
+        profileImage?: Express.Multer.File[];
+        coverImage?: Express.Multer.File[];
+      };
+
+      const profileImageUrl = files?.profileImage?.[0]?.path;
+      const coverImageUrl = files?.coverImage?.[0]?.path;
+
+      const result = await authService.registerUser(
+        {
+          ...req.body,
+          userAgent,
+          profileImage: profileImageUrl,
+          coverImage: coverImageUrl,
+        },
+        guestSessionToken
+      );
 
       // set cookies
       res.cookie("session_token", result.sessionToken, {
@@ -54,7 +71,10 @@ export class AuthController {
       const guestSessionToken = req.cookies.session_token;
 
       const userAgent = req.headers["user-agent"];
-      const result = await authService.loginUser({ ...req.body, userAgent }, guestSessionToken);
+      const result = await authService.loginUser(
+        { ...req.body, userAgent },
+        guestSessionToken
+      );
 
       res.cookie("session_token", result.sessionToken, {
         httpOnly: true,
@@ -375,6 +395,103 @@ export class AuthController {
             STATUS_CODE.SUCCESS,
             result,
             "Account deleted successfully"
+          )
+        );
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async updateProfile(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.user) {
+        throw new ApiError(STATUS_CODE.UNAUTHORIZED, "Not authenticated");
+      }
+
+      const updatedUser = await authService.updateProfile(
+        req.user.userId,
+        req.body
+      );
+
+      res
+        .status(STATUS_CODE.SUCCESS)
+        .json(
+          new ApiResponse(
+            STATUS_CODE.SUCCESS,
+            updatedUser,
+            "Profile updated successfully"
+          )
+        );
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async updateProfileImage(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.user) {
+        throw new ApiError(STATUS_CODE.UNAUTHORIZED, "Not authenticated");
+      }
+
+      const file = req.file as Express.Multer.File & {
+        path?: string;
+      };
+
+      AppAssert(file, STATUS_CODE.BAD_REQUEST, "Profile image is required");
+      AppAssert(
+        file.path,
+        STATUS_CODE.INTERNAL_SERVER_ERROR,
+        "Failed to upload image"
+      );
+
+      const updatedUser = await authService.updateProfileImage(
+        req.user.userId,
+        file.path
+      );
+
+      res
+        .status(STATUS_CODE.SUCCESS)
+        .json(
+          new ApiResponse(
+            STATUS_CODE.SUCCESS,
+            updatedUser,
+            "Profile image updated successfully"
+          )
+        );
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async updateCoverImage(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.user) {
+        throw new ApiError(STATUS_CODE.UNAUTHORIZED, "Not authenticated");
+      }
+
+      const file = req.file as Express.Multer.File & {
+        path?: string;
+      };
+
+      AppAssert(file, STATUS_CODE.BAD_REQUEST, "Cover image is required");
+      AppAssert(
+        file.path,
+        STATUS_CODE.INTERNAL_SERVER_ERROR,
+        "Failed to upload image"
+      );
+
+      const updatedUser = await authService.updateCoverImage(
+        req.user.userId,
+        file.path
+      );
+
+      res
+        .status(STATUS_CODE.SUCCESS)
+        .json(
+          new ApiResponse(
+            STATUS_CODE.SUCCESS,
+            updatedUser,
+            "Cover image updated successfully"
           )
         );
     } catch (error) {
