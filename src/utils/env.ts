@@ -28,3 +28,13 @@ export const SESSION_SECRET = getEnv("SESSION_SECRET");
 export const PORT = getEnv("PORT");
 export const CORS_ORIGIN = getEnv("CORS_ORIGIN");
 export const CLIENT_URL = getEnv("CLIENT_URL");
+
+// Upstash Redis
+export const UPSTASH_REDIS_REST_URL = getEnv("UPSTASH_REDIS_REST_URL");
+export const UPSTASH_REDIS_REST_TOKEN = getEnv("UPSTASH_REDIS_REST_TOKEN");
+
+// Redis Configuration
+export const REDIS_HOST = getEnv("REDIS_HOST", "localhost");
+export const REDIS_PORT = getEnv("REDIS_PORT", "6379");
+export const REDIS_PASSWORD = process.env.REDIS_PASSWORD; // Optional for local dev
+export const REDIS_DB = getEnv("REDIS_DB", "0");
