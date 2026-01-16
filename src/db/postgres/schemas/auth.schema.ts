@@ -5,6 +5,9 @@ export const usersTable = pgTable("users", {
   username: text("username").notNull().unique(),
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
+  profileImage: text("profile_image"), // cloudinary URL
+  coverImage: text("cover_image"), // cloudinary URL
+  bio: text("bio"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   lastLoginAt: timestamp("last_login_at"),
   deletedAt: timestamp("deleted_at"), // soft delete timestamp

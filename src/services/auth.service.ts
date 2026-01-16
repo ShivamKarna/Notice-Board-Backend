@@ -4,15 +4,19 @@ import { usersTable } from "../db/postgres/schemas";
 import { ApiError } from "../utils/ApiError";
 import { STATUS_CODE } from "../types/httpStatus";
 import type { loginInput, RegisterInput } from "../utils/auth/validations";
+import type { UpdateProfileInput } from "../utils/auth/validations";
 import { comparePassword, hashPassword } from "../utils/auth/password";
 import { AppAssert } from "../utils/AppAssert";
-import { convertGuestToUserSession, createUserSession } from "../utils/auth/session";
+import {
+  convertGuestToUserSession,
+  createUserSession,
+} from "../utils/auth/session";
 import { createRefreshToken, signAccessToken } from "../utils/auth/jwt";
 import { revokeAllUserTokens, revokeToken } from "../utils/auth/refreshToken";
 import { guestService } from "./guest.service";
 
 export class AuthService {
-  async registerUser(input: RegisterInput,guestSessionToken?:string) {
+  async registerUser(input: RegisterInput, guestSessionToken?: string) {
     //check if existing
     const existingUser = await db
       .select()
@@ -35,19 +39,26 @@ export class AuthService {
     //hash password
     const hashedPassword = await hashPassword(input.password);
     //create new user
-    const [newUser] = await db
-      .insert(usersTable)
-      .values({
-        username: input.username.toLowerCase(),
-        email: input.email,
-        password: hashedPassword,
-      })
-      .returning({
-        id: usersTable.id,
-        username: usersTable.username,
-        email: usersTable.email,
-        createdAt: usersTable.createdAt,
-      });
+    const insertData: any = {
+      username: input.username.toLowerCase(),
+      email: input.email,
+      password: hashedPassword,
+    };
+
+    // Add optional fields if provided
+    if (input.profileImage) insertData.profileImage = input.profileImage;
+    if (input.coverImage) insertData.coverImage = input.coverImage;
+    if (input.bio) insertData.bio = input.bio;
+
+    const [newUser] = await db.insert(usersTable).values(insertData).returning({
+      id: usersTable.id,
+      username: usersTable.username,
+      email: usersTable.email,
+      profileImage: usersTable.profileImage,
+      coverImage: usersTable.coverImage,
+      bio: usersTable.bio,
+      createdAt: usersTable.createdAt,
+    });
     AppAssert(
       newUser,
       STATUS_CODE.INTERNAL_SERVER_ERROR,
@@ -71,7 +82,7 @@ export class AuthService {
 
     const refreshToken = await createRefreshToken(newUser.id, input.userAgent);
 
-    if(guestSessionToken){
+    if (guestSessionToken) {
       await convertGuestToUserSession(guestSessionToken, newUser.id);
     }
 
@@ -83,7 +94,7 @@ export class AuthService {
       sessionToken: session.sessionToken,
     };
   }
-  async loginUser(input: loginInput, guestSessionToken?:string) {
+  async loginUser(input: loginInput, guestSessionToken?: string) {
     // find user // check password, // update last login , //create session // generate tokens //return response
     const [user] = await db
       .select()
@@ -130,8 +141,7 @@ export class AuthService {
 
     const refreshToken = await createRefreshToken(user.id, input.userAgent);
 
-
-    if(guestSessionToken){
+    if (guestSessionToken) {
       await convertGuestToUserSession(guestSessionToken, user.id);
     }
     return {
@@ -159,6 +169,9 @@ export class AuthService {
         id: usersTable.id,
         username: usersTable.username,
         email: usersTable.email,
+        profileImage: usersTable.profileImage,
+        coverImage: usersTable.coverImage,
+        bio: usersTable.bio,
         createdAt: usersTable.createdAt,
         lastLoginAt: usersTable.lastLoginAt,
       })
@@ -206,6 +219,78 @@ export class AuthService {
       .returning({ id: usersTable.id });
 
     return result.length;
+  }
+
+  async updateProfile(userId: string, input: UpdateProfileInput) {
+    // Check if username is taken (if provided)
+    if (input.username) {
+      const existingUser = await db
+        .select()
+        .from(usersTable)
+        .where(eq(usersTable.username, input.username.toLowerCase()))
+        .limit(1);
+
+      if (existingUser.length > 0 && existingUser[0]!.id !== userId) {
+        throw new ApiError(STATUS_CODE.CONFLICT, "Username already taken");
+      }
+    }
+
+    const updateData: any = {};
+    if (input.username) updateData.username = input.username.toLowerCase();
+    if (input.bio !== undefined) updateData.bio = input.bio;
+
+    const [updatedUser] = await db
+      .update(usersTable)
+      .set(updateData)
+      .where(eq(usersTable.id, userId))
+      .returning({
+        id: usersTable.id,
+        username: usersTable.username,
+        email: usersTable.email,
+        profileImage: usersTable.profileImage,
+        coverImage: usersTable.coverImage,
+        bio: usersTable.bio,
+        createdAt: usersTable.createdAt,
+      });
+
+    AppAssert(updatedUser, STATUS_CODE.NOT_FOUND, "User not found");
+    return updatedUser;
+  }
+
+  async updateProfileImage(userId: string, imageUrl: string) {
+    const [updatedUser] = await db
+      .update(usersTable)
+      .set({ profileImage: imageUrl })
+      .where(eq(usersTable.id, userId))
+      .returning({
+        id: usersTable.id,
+        username: usersTable.username,
+        email: usersTable.email,
+        profileImage: usersTable.profileImage,
+        coverImage: usersTable.coverImage,
+        bio: usersTable.bio,
+      });
+
+    AppAssert(updatedUser, STATUS_CODE.NOT_FOUND, "User not found");
+    return updatedUser;
+  }
+
+  async updateCoverImage(userId: string, imageUrl: string) {
+    const [updatedUser] = await db
+      .update(usersTable)
+      .set({ coverImage: imageUrl })
+      .where(eq(usersTable.id, userId))
+      .returning({
+        id: usersTable.id,
+        username: usersTable.username,
+        email: usersTable.email,
+        profileImage: usersTable.profileImage,
+        coverImage: usersTable.coverImage,
+        bio: usersTable.bio,
+      });
+
+    AppAssert(updatedUser, STATUS_CODE.NOT_FOUND, "User not found");
+    return updatedUser;
   }
 }
 export const authService = new AuthService();

@@ -4,7 +4,17 @@ import { Router } from "express";
 import { authController } from "../../controllers/auth.controller";
 import { authenticate } from "../../middlewares/auth.middleware";
 import { validate } from "../../middlewares/validation.middleware";
-import { registerSchema, loginSchema } from "../../utils/auth/validations";
+import {
+  registerSchema,
+  loginSchema,
+  updateProfileSchema,
+} from "../../utils/auth/validations";
+import {
+  uploadSingle,
+  handleMulterError,
+  uploadRegistrationImages,
+} from "../../middlewares/upload.middleware";
+import { z } from "zod";
 
 const authRouter = Router();
 
@@ -13,6 +23,8 @@ const authRouter = Router();
 // public route
 authRouter.post(
   "/register",
+  uploadRegistrationImages,
+  handleMulterError,
   validate(registerSchema),
   authController.registerUser
 );
@@ -36,5 +48,29 @@ authRouter.delete(
 );
 
 authRouter.delete("/account", authenticate, authController.deleteAccount);
+
+// Profile Management Routes
+authRouter.patch(
+  "/profile",
+  authenticate,
+  validate(z.object({ body: updateProfileSchema })),
+  authController.updateProfile
+);
+
+authRouter.patch(
+  "/profile/image",
+  authenticate,
+  uploadSingle,
+  handleMulterError,
+  authController.updateProfileImage
+);
+
+authRouter.patch(
+  "/profile/cover",
+  authenticate,
+  uploadSingle,
+  handleMulterError,
+  authController.updateCoverImage
+);
 
 export { authRouter };
