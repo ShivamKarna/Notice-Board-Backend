@@ -56,6 +56,29 @@ app.get("/health", async (req: Request, res: Response) => {
   }
 });
 
+// Root route
+app.get("/", (req: Request, res: Response) => {
+  res.json({
+    message: "Welcome to Notice Board API",
+    version: "1.0.0",
+    documentation: "/api-docs",
+    health: "/health",
+    endpoints: {
+      auth: "/api/auth",
+      groups: {
+        main: "/api/group",
+        likes: "/api/groups",
+      },
+      posts: "/api/posts",
+      interactions: "/api/interactions",
+      notifications: "/api/notifications",
+      search: "/api/search",
+      guest: "/api/guest",
+      cron: "/api/cron",
+    },
+  });
+});
+
 // Routes
 app.use("/api", router);
 
