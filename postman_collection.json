@@ -1,0 +1,1879 @@
+{
+  "info": {
+    "name": "Notice Board Backend",
+    "description": "Complete API collection for Notice Board Backend with sample data",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "notice-board-api-v1",
+    "version": "1.0.0"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000/api",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "groupId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "postId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "commentId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "notificationId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["health"]
+        },
+        "description": "Check API health status"
+      }
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('accessToken', jsonData.data.accessToken);",
+                  "    pm.collectionVariables.set('refreshToken', jsonData.data.refreshToken);",
+                  "    pm.collectionVariables.set('userId', jsonData.data.user.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "username",
+                  "value": "johndoe",
+                  "type": "text"
+                },
+                {
+                  "key": "email",
+                  "value": "johndoe@example.com",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "SecurePass123!",
+                  "type": "text"
+                },
+                {
+                  "key": "bio",
+                  "value": "Software developer passionate about tech!",
+                  "type": "text",
+                  "disabled": true,
+                  "description": "Optional: User bio (max 500 characters)"
+                },
+                {
+                  "key": "profileImage",
+                  "type": "file",
+                  "src": [],
+                  "disabled": true,
+                  "description": "Optional: Profile image (max 10MB)"
+                },
+                {
+                  "key": "coverImage",
+                  "type": "file",
+                  "src": [],
+                  "disabled": true,
+                  "description": "Optional: Cover image (max 10MB)"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            },
+            "description": "Register a new user account with optional profile image, cover image, and bio"
+          }
+        },
+        {
+          "name": "Login User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('accessToken', jsonData.data.accessToken);",
+                  "    pm.collectionVariables.set('refreshToken', jsonData.data.refreshToken);",
+                  "    pm.collectionVariables.set('userId', jsonData.data.user.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"johndoe@example.com\",\n  \"password\": \"SecurePass123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Login with existing credentials"
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('accessToken', jsonData.data.accessToken);",
+                  "    pm.collectionVariables.set('refreshToken', jsonData.data.refreshToken);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "refresh"]
+            },
+            "description": "Refresh access token using refresh token"
+          }
+        },
+        {
+          "name": "Get Current User (Me)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "me"]
+            },
+            "description": "Get currently authenticated user details"
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "logout"]
+            },
+            "description": "Logout current user session"
+          }
+        },
+        {
+          "name": "Get All Sessions",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/sessions",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "sessions"]
+            },
+            "description": "Get all active sessions for current user"
+          }
+        },
+        {
+          "name": "Get Session By ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/sessions/:sessionId",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "sessions", ":sessionId"],
+              "variable": [
+                {
+                  "key": "sessionId",
+                  "value": "session-uuid-here"
+                }
+              ]
+            },
+            "description": "Get specific session details"
+          }
+        },
+        {
+          "name": "Revoke All Sessions",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/sessions",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "sessions"]
+            },
+            "description": "Revoke all user sessions (logout from all devices)"
+          }
+        },
+        {
+          "name": "Revoke Session By ID",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/sessions/:sessionId",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "sessions", ":sessionId"],
+              "variable": [
+                {
+                  "key": "sessionId",
+                  "value": "session-uuid-here"
+                }
+              ]
+            },
+            "description": "Revoke specific session"
+          }
+        },
+        {
+          "name": "Delete Account",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/account",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "account"]
+            },
+            "description": "Delete user account (soft delete)"
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"johndoe_updated\",\n  \"bio\": \"Software developer passionate about building awesome apps!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "profile"]
+            },
+            "description": "Update user profile (username, bio)"
+          }
+        },
+        {
+          "name": "Update Profile Image",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": [],
+                  "description": "Profile image file (max 10MB)"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/profile/image",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "profile", "image"]
+            },
+            "description": "Upload or update profile image"
+          }
+        },
+        {
+          "name": "Update Cover Image",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": [],
+                  "description": "Cover image file (max 10MB)"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/profile/cover",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "profile", "cover"]
+            },
+            "description": "Upload or update cover image"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Groups",
+      "item": [
+        {
+          "name": "Create Group",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('groupId', jsonData.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Tech Enthusiasts\",\n  \"description\": \"A group for sharing technology news and discussions\",\n  \"isPublic\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/group/create",
+              "host": ["{{baseUrl}}"],
+              "path": ["group", "create"]
+            },
+            "description": "Create a new group"
+          }
+        },
+        {
+          "name": "Get Public Groups",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/group/public",
+              "host": ["{{baseUrl}}"],
+              "path": ["group", "public"]
+            },
+            "description": "Get all public groups"
+          }
+        },
+        {
+          "name": "Get User Groups",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/group",
+              "host": ["{{baseUrl}}"],
+              "path": ["group"]
+            },
+            "description": "Get groups user is member of"
+          }
+        },
+        {
+          "name": "Get Group By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/group/:groupId",
+              "host": ["{{baseUrl}}"],
+              "path": ["group", ":groupId"],
+              "variable": [
+                {
+                  "key": "groupId",
+                  "value": "{{groupId}}"
+                }
+              ]
+            },
+            "description": "Get group details by ID"
+          }
+        },
+        {
+          "name": "Update Group",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Tech Enthusiasts Updated\",\n  \"description\": \"Updated description for tech group\",\n  \"isPublic\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/group/:groupId",
+              "host": ["{{baseUrl}}"],
+              "path": ["group", ":groupId"],
+              "variable": [
+                {
+                  "key": "groupId",
+                  "value": "{{groupId}}"
+                }
+              ]
+            },
+            "description": "Update group details"
+          }
+        },
+        {
+          "name": "Delete Group",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/group/:groupId",
+              "host": ["{{baseUrl}}"],
+              "path": ["group", ":groupId"],
+              "variable": [
+                {
+                  "key": "groupId",
+                  "value": "{{groupId}}"
+                }
+              ]
+            },
+            "description": "Delete a group"
+          }
+        },
+        {
+          "name": "Get Group Members",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/group/:groupId/members",
+              "host": ["{{baseUrl}}"],
+              "path": ["group", ":groupId", "members"],
+              "variable": [
+                {
+                  "key": "groupId",
+                  "value": "{{groupId}}"
+                }
+              ]
+            },
+            "description": "Get all members of a group"
+          }
+        },
+        {
+          "name": "Invite Member",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"newmember@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/group/:groupId/members/invite",
+              "host": ["{{baseUrl}}"],
+              "path": ["group", ":groupId", "members", "invite"],
+              "variable": [
+                {
+                  "key": "groupId",
+                  "value": "{{groupId}}"
+                }
+              ]
+            },
+            "description": "Invite a user to the group"
+          }
+        },
+        {
+          "name": "Get User Invitations",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/group/my-invitations",
+              "host": ["{{baseUrl}}"],
+              "path": ["group", "my-invitations"]
+            },
+            "description": "Get all pending invitations for current user"
+          }
+        },
+        {
+          "name": "Accept Invitation",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/group/invitations/:token/accept",
+              "host": ["{{baseUrl}}"],
+              "path": ["group", "invitations", ":token", "accept"],
+              "variable": [
+                {
+                  "key": "token",
+                  "value": "invitation-token-here"
+                }
+              ]
+            },
+            "description": "Accept a group invitation"
+          }
+        },
+        {
+          "name": "Decline Invitation",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/group/invitations/:token/decline",
+              "host": ["{{baseUrl}}"],
+              "path": ["group", "invitations", ":token", "decline"],
+              "variable": [
+                {
+                  "key": "token",
+                  "value": "invitation-token-here"
+                }
+              ]
+            },
+            "description": "Decline a group invitation"
+          }
+        },
+        {
+          "name": "Remove Member",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/group/:groupId/members/:memberId",
+              "host": ["{{baseUrl}}"],
+              "path": ["group", ":groupId", "members", ":memberId"],
+              "variable": [
+                {
+                  "key": "groupId",
+                  "value": "{{groupId}}"
+                },
+                {
+                  "key": "memberId",
+                  "value": "member-user-id"
+                }
+              ]
+            },
+            "description": "Remove a member from group"
+          }
+        },
+        {
+          "name": "Leave Group",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/group/:groupId/leave",
+              "host": ["{{baseUrl}}"],
+              "path": ["group", ":groupId", "leave"],
+              "variable": [
+                {
+                  "key": "groupId",
+                  "value": "{{groupId}}"
+                }
+              ]
+            },
+            "description": "Leave a group"
+          }
+        },
+        {
+          "name": "Update Member Role",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"moderator\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/group/:groupId/members/:memberId/role",
+              "host": ["{{baseUrl}}"],
+              "path": ["group", ":groupId", "members", ":memberId", "role"],
+              "variable": [
+                {
+                  "key": "groupId",
+                  "value": "{{groupId}}"
+                },
+                {
+                  "key": "memberId",
+                  "value": "member-user-id"
+                }
+              ]
+            },
+            "description": "Update member role in group"
+          }
+        },
+        {
+          "name": "Get Group Posts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/group/:groupId/posts",
+              "host": ["{{baseUrl}}"],
+              "path": ["group", ":groupId", "posts"],
+              "variable": [
+                {
+                  "key": "groupId",
+                  "value": "{{groupId}}"
+                }
+              ]
+            },
+            "description": "Get all posts in a group"
+          }
+        },
+        {
+          "name": "Get Pending Posts",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/group/:groupId/posts/pending",
+              "host": ["{{baseUrl}}"],
+              "path": ["group", ":groupId", "posts", "pending"],
+              "variable": [
+                {
+                  "key": "groupId",
+                  "value": "{{groupId}}"
+                }
+              ]
+            },
+            "description": "Get pending posts awaiting approval"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Posts",
+      "item": [
+        {
+          "name": "Create Post",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('postId', jsonData.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Introduction to TypeScript\",\n  \"content\": \"TypeScript is a strongly typed programming language that builds on JavaScript...\",\n  \"groupId\": \"{{groupId}}\",\n  \"tags\": [\"typescript\", \"programming\", \"javascript\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/posts",
+              "host": ["{{baseUrl}}"],
+              "path": ["posts"]
+            },
+            "description": "Create a new post"
+          }
+        },
+        {
+          "name": "Get Post By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/posts/:postId",
+              "host": ["{{baseUrl}}"],
+              "path": ["posts", ":postId"],
+              "variable": [
+                {
+                  "key": "postId",
+                  "value": "{{postId}}"
+                }
+              ]
+            },
+            "description": "Get post details by ID"
+          }
+        },
+        {
+          "name": "Update Post",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Advanced TypeScript Patterns\",\n  \"content\": \"Updated content about TypeScript advanced patterns...\",\n  \"tags\": [\"typescript\", \"advanced\", \"patterns\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/posts/:postId",
+              "host": ["{{baseUrl}}"],
+              "path": ["posts", ":postId"],
+              "variable": [
+                {
+                  "key": "postId",
+                  "value": "{{postId}}"
+                }
+              ]
+            },
+            "description": "Update post details"
+          }
+        },
+        {
+          "name": "Delete Post",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/posts/:postId",
+              "host": ["{{baseUrl}}"],
+              "path": ["posts", ":postId"],
+              "variable": [
+                {
+                  "key": "postId",
+                  "value": "{{postId}}"
+                }
+              ]
+            },
+            "description": "Delete a post"
+          }
+        },
+        {
+          "name": "Submit Post for Approval",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/posts/:postId/submit",
+              "host": ["{{baseUrl}}"],
+              "path": ["posts", ":postId", "submit"],
+              "variable": [
+                {
+                  "key": "postId",
+                  "value": "{{postId}}"
+                }
+              ]
+            },
+            "description": "Submit post for moderator approval"
+          }
+        },
+        {
+          "name": "Approve Post",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/posts/:postId/approve",
+              "host": ["{{baseUrl}}"],
+              "path": ["posts", ":postId", "approve"],
+              "variable": [
+                {
+                  "key": "postId",
+                  "value": "{{postId}}"
+                }
+              ]
+            },
+            "description": "Approve a pending post (moderator only)"
+          }
+        },
+        {
+          "name": "Reject Post",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Content does not meet group guidelines\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/posts/:postId/reject",
+              "host": ["{{baseUrl}}"],
+              "path": ["posts", ":postId", "reject"],
+              "variable": [
+                {
+                  "key": "postId",
+                  "value": "{{postId}}"
+                }
+              ]
+            },
+            "description": "Reject a pending post (moderator only)"
+          }
+        },
+        {
+          "name": "Get User Posts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/posts/user/:userId",
+              "host": ["{{baseUrl}}"],
+              "path": ["posts", "user", ":userId"],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "{{userId}}"
+                }
+              ]
+            },
+            "description": "Get all posts by a specific user"
+          }
+        },
+        {
+          "name": "Upload Post Media",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "files",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/posts/:postId/media",
+              "host": ["{{baseUrl}}"],
+              "path": ["posts", ":postId", "media"],
+              "variable": [
+                {
+                  "key": "postId",
+                  "value": "{{postId}}"
+                }
+              ]
+            },
+            "description": "Upload media files to a post (images, videos, etc.)"
+          }
+        },
+        {
+          "name": "Remove Post Media",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/posts/:postId/media/:mediaId",
+              "host": ["{{baseUrl}}"],
+              "path": ["posts", ":postId", "media", ":mediaId"],
+              "variable": [
+                {
+                  "key": "postId",
+                  "value": "{{postId}}"
+                },
+                {
+                  "key": "mediaId",
+                  "value": "media-uuid"
+                }
+              ]
+            },
+            "description": "Remove a media file from post"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Interactions",
+      "item": [
+        {
+          "name": "Create Comment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('commentId', jsonData.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Great article! Very informative.\",\n  \"parentCommentId\": null\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/interactions/posts/:postId/comments",
+              "host": ["{{baseUrl}}"],
+              "path": ["interactions", "posts", ":postId", "comments"],
+              "variable": [
+                {
+                  "key": "postId",
+                  "value": "{{postId}}"
+                }
+              ]
+            },
+            "description": "Add a comment to a post"
+          }
+        },
+        {
+          "name": "Get Post Comments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/interactions/posts/:postId/comments",
+              "host": ["{{baseUrl}}"],
+              "path": ["interactions", "posts", ":postId", "comments"],
+              "variable": [
+                {
+                  "key": "postId",
+                  "value": "{{postId}}"
+                }
+              ]
+            },
+            "description": "Get all comments for a post"
+          }
+        },
+        {
+          "name": "Update Comment",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Updated comment: Even better after re-reading!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/interactions/comments/:commentId",
+              "host": ["{{baseUrl}}"],
+              "path": ["interactions", "comments", ":commentId"],
+              "variable": [
+                {
+                  "key": "commentId",
+                  "value": "{{commentId}}"
+                }
+              ]
+            },
+            "description": "Update a comment"
+          }
+        },
+        {
+          "name": "Delete Comment",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/interactions/comments/:commentId",
+              "host": ["{{baseUrl}}"],
+              "path": ["interactions", "comments", ":commentId"],
+              "variable": [
+                {
+                  "key": "commentId",
+                  "value": "{{commentId}}"
+                }
+              ]
+            },
+            "description": "Delete a comment"
+          }
+        },
+        {
+          "name": "Like Post",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/interactions/posts/:postId/like",
+              "host": ["{{baseUrl}}"],
+              "path": ["interactions", "posts", ":postId", "like"],
+              "variable": [
+                {
+                  "key": "postId",
+                  "value": "{{postId}}"
+                }
+              ]
+            },
+            "description": "Like a post"
+          }
+        },
+        {
+          "name": "Unlike Post",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/interactions/posts/:postId/like",
+              "host": ["{{baseUrl}}"],
+              "path": ["interactions", "posts", ":postId", "like"],
+              "variable": [
+                {
+                  "key": "postId",
+                  "value": "{{postId}}"
+                }
+              ]
+            },
+            "description": "Remove like from a post"
+          }
+        },
+        {
+          "name": "Get Post Likes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/interactions/posts/:postId/likes",
+              "host": ["{{baseUrl}}"],
+              "path": ["interactions", "posts", ":postId", "likes"],
+              "variable": [
+                {
+                  "key": "postId",
+                  "value": "{{postId}}"
+                }
+              ]
+            },
+            "description": "Get all likes for a post"
+          }
+        },
+        {
+          "name": "Check If User Liked Post",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/interactions/posts/:postId/liked?userId={{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["interactions", "posts", ":postId", "liked"],
+              "query": [
+                {
+                  "key": "userId",
+                  "value": "{{userId}}"
+                }
+              ],
+              "variable": [
+                {
+                  "key": "postId",
+                  "value": "{{postId}}"
+                }
+              ]
+            },
+            "description": "Check if user has liked a post"
+          }
+        },
+        {
+          "name": "Get User Liked Posts",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/interactions/users/me/liked-posts",
+              "host": ["{{baseUrl}}"],
+              "path": ["interactions", "users", "me", "liked-posts"]
+            },
+            "description": "Get all posts liked by current user"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "Get User Notifications",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications?limit=20&offset=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            },
+            "description": "Get all notifications for current user"
+          }
+        },
+        {
+          "name": "Get Unread Count",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/unread/count",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications", "unread", "count"]
+            },
+            "description": "Get count of unread notifications"
+          }
+        },
+        {
+          "name": "Get Notification Preferences",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/preferences",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications", "preferences"]
+            },
+            "description": "Get notification preferences for current user"
+          }
+        },
+        {
+          "name": "Update Notification Preferences",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": true,\n  \"push\": true,\n  \"inApp\": true,\n  \"newPost\": true,\n  \"newComment\": true,\n  \"newLike\": false,\n  \"groupInvite\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/notifications/preferences",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications", "preferences"]
+            },
+            "description": "Update notification preferences"
+          }
+        },
+        {
+          "name": "Mark Notification as Read",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/:notificationId/read",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications", ":notificationId", "read"],
+              "variable": [
+                {
+                  "key": "notificationId",
+                  "value": "{{notificationId}}"
+                }
+              ]
+            },
+            "description": "Mark a specific notification as read"
+          }
+        },
+        {
+          "name": "Mark All as Read",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/read-all",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications", "read-all"]
+            },
+            "description": "Mark all notifications as read"
+          }
+        },
+        {
+          "name": "Delete Notification",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/:notificationId",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications", ":notificationId"],
+              "variable": [
+                {
+                  "key": "notificationId",
+                  "value": "{{notificationId}}"
+                }
+              ]
+            },
+            "description": "Delete a specific notification"
+          }
+        },
+        {
+          "name": "Delete All Read Notifications",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/read/all",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications", "read", "all"]
+            },
+            "description": "Delete all read notifications"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Search",
+      "item": [
+        {
+          "name": "Search Groups",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/search/groups?query=tech&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["search", "groups"],
+              "query": [
+                {
+                  "key": "query",
+                  "value": "tech"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Search for groups by name or description"
+          }
+        },
+        {
+          "name": "Search Posts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/search/posts?query=typescript&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["search", "posts"],
+              "query": [
+                {
+                  "key": "query",
+                  "value": "typescript"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Search for posts by title or content"
+          }
+        },
+        {
+          "name": "Search Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/search/users?query=john&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["search", "users"],
+              "query": [
+                {
+                  "key": "query",
+                  "value": "john"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Search for users by username or email"
+          }
+        },
+        {
+          "name": "Filter Posts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/search/filter/posts?status=approved&tags=typescript,programming&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["search", "filter", "posts"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "approved"
+                },
+                {
+                  "key": "tags",
+                  "value": "typescript,programming"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Filter posts by various criteria (status, tags, etc.)"
+          }
+        }
+      ]
+    }
+  ]
+}
