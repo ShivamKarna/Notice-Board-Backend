@@ -9,6 +9,8 @@ import cookieParser from "cookie-parser";
 import { errorHandler } from "./middlewares/error.middleware";
 import router from "./routes/index";
 import redis from "./config/redis.config.ts";
+import swaggerUi from "swagger-ui-express";
+import { swaggerSpec } from "./config/swagger.config";
 
 const app: Application = express();
 
@@ -21,6 +23,16 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
+// Swagger Documentation
+app.use(
+  "/api-docs",
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec, {
+    customCss: ".swagger-ui .topbar { display: none }",
+    customSiteTitle: "Notice Board API Docs",
+  })
+);
 
 // Health check endpoint for Render
 app.get("/health", async (req: Request, res: Response) => {

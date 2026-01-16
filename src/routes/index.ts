@@ -2,6 +2,7 @@ import { Router } from "express";
 import { authRouter } from "./auth/auth.routes";
 import { cronRouter } from "./cron.routes";
 import { groupRouter } from "./group/group.routes";
+import { groupLikeRouter } from "./groupLikes/groupLikes.routes";
 import { postRouter } from "./post/post.routes";
 import { interactionsRouter } from "./interaction/comments_likes.routes";
 import { notificationRouter } from "./notifications/notification.route";
@@ -13,6 +14,7 @@ const router = Router();
 
 router.use("/auth", authRouter);
 router.use("/group", groupRouter);
+router.use("/groups", groupLikeRouter);
 router.use("/posts", postRouter);
 router.use("/interactions", interactionsRouter);
 router.use("/notifications", notificationRouter);
