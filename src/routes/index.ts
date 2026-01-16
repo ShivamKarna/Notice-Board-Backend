@@ -12,6 +12,25 @@ const router = Router();
 
 // prefix :   localhost/api
 
+// Root route
+router.get("/", (req, res) => {
+  res.json({
+    message: "Welcome to Notice Board API",
+    version: "1.0.0",
+    documentation: "/api-docs",
+    endpoints: {
+      auth: "/api/auth",
+      groups: "/api/group, /api/groups",
+      posts: "/api/posts",
+      interactions: "/api/interactions",
+      notifications: "/api/notifications",
+      search: "/api/search",
+      guest: "/api/guest",
+      health: "/api/health",
+    },
+  });
+});
+
 router.use("/auth", authRouter);
 router.use("/group", groupRouter);
 router.use("/groups", groupLikeRouter);
