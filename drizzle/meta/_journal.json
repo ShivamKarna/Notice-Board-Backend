@@ -29,6 +29,13 @@
       "when": 1767795695340,
       "tag": "0003_bright_cargill",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1768486230804,
+      "tag": "0004_fixed_genesis",
+      "breakpoints": true
     }
   ]
 }
