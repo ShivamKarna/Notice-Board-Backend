@@ -30,6 +30,12 @@ const upload = multer({
 export const uploadSingle = upload.single("image");
 export const uploadMultiple = upload.array("images", 5); // Max 5 images
 
+// For registration with optional profile and cover images
+export const uploadRegistrationImages = upload.fields([
+  { name: "profileImage", maxCount: 1 },
+  { name: "coverImage", maxCount: 1 },
+]);
+
 // Error handler for multer
 import type { Response, NextFunction } from "express";
 
