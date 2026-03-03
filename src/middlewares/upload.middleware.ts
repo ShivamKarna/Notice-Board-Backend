@@ -2,7 +2,6 @@ import multer from "multer";
 import { cloudinary } from "../config/cloudinary.config";
 import { ApiError } from "../utils/ApiError";
 import type { Request, Response, NextFunction } from "express";
-import { Readable } from "stream";
 
 // File filter to accept only images
 const fileFilter = (
@@ -26,30 +25,25 @@ const upload = multer({
   },
 });
 
-// Upload a single buffer to Cloudinary (signed upload via API key + secret)
-function uploadBufferToCloudinary(
+// Upload a single buffer to Cloudinary via base64 data URI (compatible with Bun)
+async function uploadBufferToCloudinary(
   buffer: Buffer,
+  mimetype: string,
   folder: string,
 ): Promise<{ url: string; publicId: string }> {
-  return new Promise((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(
-      {
-        folder,
-        allowed_formats: ["jpg", "jpeg", "png", "gif", "webp"],
-        transformation: [
-          { width: 1200, height: 1200, crop: "limit" },
-          { quality: "auto" },
-        ],
-      },
-      (error, result) => {
-        if (error) return reject(error);
-        if (!result)
-          return reject(new Error("No upload result from Cloudinary"));
-        resolve({ url: result.secure_url, publicId: result.public_id });
-      },
-    );
-    Readable.from(buffer).pipe(stream);
+  const base64 = buffer.toString("base64");
+  const dataUri = `data:${mimetype};base64,${base64}`;
+
+  const result = await cloudinary.uploader.upload(dataUri, {
+    folder,
+    allowed_formats: ["jpg", "jpeg", "png", "gif", "webp"],
+    transformation: [
+      { width: 1200, height: 1200, crop: "limit" },
+      { quality: "auto" },
+    ],
   });
+
+  return { url: result.secure_url, publicId: result.public_id };
 }
 
 // Single image upload (field name: "image")
@@ -64,6 +58,7 @@ export const uploadSingle = (
     try {
       const { url, publicId } = await uploadBufferToCloudinary(
         req.file.buffer,
+        req.file.mimetype,
         "noticeboard/posts",
       );
       req.file.path = url;
@@ -90,6 +85,7 @@ export const uploadMultiple = (
         (req.files as Express.Multer.File[]).map(async (file) => {
           const { url, publicId } = await uploadBufferToCloudinary(
             file.buffer,
+            file.mimetype,
             "noticeboard/posts",
           );
           file.path = url;
@@ -124,6 +120,7 @@ export const uploadRegistrationImages = (
           fileArr.map(async (file) => {
             const { url, publicId } = await uploadBufferToCloudinary(
               file.buffer,
+              file.mimetype,
               "noticeboard/profiles",
             );
             file.path = url;
