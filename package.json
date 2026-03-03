@@ -10,7 +10,8 @@
     "db:generate": "drizzle-kit generate --config=src/config/drizzle.config.ts",
     "db:migrate": "drizzle-kit migrate --config=src/config/drizzle.config.ts",
     "db:push": "drizzle-kit push --config=src/config/drizzle.config.ts",
-    "db:mark-applied": "bun run scripts/mark-migrations-applied.ts"
+    "db:mark-applied": "bun run scripts/mark-migrations-applied.ts",
+    "db:fix-columns": "bun run scripts/fix-missing-columns.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",
