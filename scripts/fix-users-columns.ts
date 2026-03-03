@@ -17,10 +17,22 @@ async function main() {
   console.log("Existing users columns:", existing.join(", "));
 
   const toAdd: { name: string; sql: string }[] = [
-    { name: "deleted_at", sql: `ALTER TABLE "users" ADD COLUMN "deleted_at" timestamp` },
-    { name: "is_deleted", sql: `ALTER TABLE "users" ADD COLUMN "is_deleted" boolean NOT NULL DEFAULT false` },
-    { name: "profile_image", sql: `ALTER TABLE "users" ADD COLUMN "profile_image" text` },
-    { name: "cover_image", sql: `ALTER TABLE "users" ADD COLUMN "cover_image" text` },
+    {
+      name: "deleted_at",
+      sql: `ALTER TABLE "users" ADD COLUMN "deleted_at" timestamp`,
+    },
+    {
+      name: "is_deleted",
+      sql: `ALTER TABLE "users" ADD COLUMN "is_deleted" boolean NOT NULL DEFAULT false`,
+    },
+    {
+      name: "profile_image",
+      sql: `ALTER TABLE "users" ADD COLUMN "profile_image" text`,
+    },
+    {
+      name: "cover_image",
+      sql: `ALTER TABLE "users" ADD COLUMN "cover_image" text`,
+    },
     { name: "bio", sql: `ALTER TABLE "users" ADD COLUMN "bio" text` },
   ];
 
@@ -71,4 +83,7 @@ async function main() {
   await sql.end();
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});
