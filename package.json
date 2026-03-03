@@ -9,7 +9,8 @@
     "start": "bun dist/index.js",
     "db:generate": "drizzle-kit generate --config=src/config/drizzle.config.ts",
     "db:migrate": "drizzle-kit migrate --config=src/config/drizzle.config.ts",
-    "db:push": "drizzle-kit push --config=src/config/drizzle.config.ts"
+    "db:push": "drizzle-kit push --config=src/config/drizzle.config.ts",
+    "db:mark-applied": "bun run scripts/mark-migrations-applied.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",
