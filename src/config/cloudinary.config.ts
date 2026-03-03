@@ -1,25 +1,11 @@
 import { v2 as cloudinary } from "cloudinary";
-import { CloudinaryStorage } from "multer-storage-cloudinary";
+import { getEnv } from "../utils/env";
 
 // cloudinary config
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
-
-export const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: async (req, file) => {
-    return {
-      folder: "noticeboard/posts",
-      allowed_formats: ["jpg", "jpeg", "png", "gif", "webp"],
-      transformation: [
-        { width: 1200, height: 1200, crop: "limit" }, // Max dimensions
-        { quality: "auto" },
-      ],
-    };
-  },
+  cloud_name: getEnv("CLOUDINARY_CLOUD_NAME"),
+  api_key: getEnv("CLOUDINARY_API_KEY"),
+  api_secret: getEnv("CLOUDINARY_API_SECRET"),
 });
 
 export async function cloudinaryDeleteImage(publicId: string): Promise<void> {
